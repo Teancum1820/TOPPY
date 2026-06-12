@@ -1,5 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
-import csvUrl from "../Data/Advertising Table (Just KIs)_data.csv?url";
+import englishCsvUrl from "../Data/English/English Data 6-12-2026.csv?url";
+import spanishCsvUrl from "../Data/Spanish/Spanish Data 6-12-2026.csv?url";
 import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
@@ -9,12 +10,35 @@ import {
 import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
 import "./styles.css";
 
+const LANGUAGE_STORAGE_KEY = "toppy-ad-language";
+const INVENTORY_SOURCES = {
+  en: {
+    label: "English",
+    url: englishCsvUrl
+  },
+  es: {
+    label: "Spanish",
+    url: spanishCsvUrl
+  }
+};
+
+function getInitialLanguage() {
+  try {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return INVENTORY_SOURCES[savedLanguage] ? savedLanguage : "en";
+  } catch {
+    return "en";
+  }
+}
+
 const state = {
   ads: [],
   selectedAds: [],
   metadataColumns: [],
   metricNames: [],
-  installPrompt: null
+  installPrompt: null,
+  inventoryLanguage: getInitialLanguage(),
+  inventoryRequestId: 0
 };
 
 const app = document.querySelector("#app");
@@ -32,6 +56,24 @@ app.innerHTML = `
         <span>Toppy</span>
       </a>
       <div class="header-actions">
+        <div class="language-toggle" role="group" aria-label="Ad language">
+          <button
+            class="language-option"
+            type="button"
+            data-language="en"
+            aria-pressed="${state.inventoryLanguage === "en"}"
+          >
+            English
+          </button>
+          <button
+            class="language-option"
+            type="button"
+            data-language="es"
+            aria-pressed="${state.inventoryLanguage === "es"}"
+          >
+            Spanish
+          </button>
+        </div>
         <span class="connection-status" id="connection-status">
           <span class="status-dot"></span>
           <span class="status-text">Online</span>
@@ -170,6 +212,23 @@ app.innerHTML = `
         <div class="result-summary" id="result-summary" hidden></div>
         <div class="campaign-list" id="campaign-list"></div>
       </section>
+
+      <section class="copycat-section" aria-labelledby="copycat-title">
+        <div>
+          <span class="step-label">Next step / Ad sets</span>
+          <h2 id="copycat-title">Ready to place the ads?</h2>
+          <p>Open COPYCAT to copy your selected ads into ad sets.</p>
+        </div>
+        <a
+          class="button button-copycat"
+          href="https://apps.powerapps.com/play/e/0b12121c-a91c-ebe6-b5f6-f431341a9312/a/a1c74af2-50e4-4cc1-b9a8-ddb679875039?tenantId=61e6eeb3-5fd7-4aaa-ae3c-61e8deb09b79&sourcetime=1732663610681"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>COPYCAT</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </section>
     </main>
 
     <footer>
@@ -203,7 +262,8 @@ const elements = {
   install: document.querySelector("#install-button"),
   toast: document.querySelector("#toast"),
   connectionStatus: document.querySelector("#connection-status"),
-  dataNote: document.querySelector("#data-note")
+  dataNote: document.querySelector("#data-note"),
+  languageButtons: document.querySelectorAll("[data-language]")
 };
 
 function findField(ad, pattern) {
@@ -481,15 +541,64 @@ function updateConnectionStatus() {
     : "Offline";
 }
 
-async function loadInventory() {
+function updateLanguageToggle() {
+  elements.languageButtons.forEach((button) => {
+    const selected = button.dataset.language === state.inventoryLanguage;
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function saveLanguagePreference() {
   try {
-    const response = await fetch(csvUrl);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, state.inventoryLanguage);
+  } catch {
+    // The app still works when browser storage is unavailable.
+  }
+}
+
+async function setInventoryLanguage(language) {
+  if (!INVENTORY_SOURCES[language] || language === state.inventoryLanguage) {
+    return;
+  }
+
+  state.inventoryLanguage = language;
+  saveLanguagePreference();
+  updateLanguageToggle();
+  await loadInventory({ announce: true });
+}
+
+async function loadInventory({ announce = false } = {}) {
+  const language = state.inventoryLanguage;
+  const source = INVENTORY_SOURCES[language];
+  const requestId = ++state.inventoryRequestId;
+
+  state.ads = [];
+  state.selectedAds = [];
+  state.metadataColumns = [];
+  state.metricNames = [];
+  renderResults();
+  elements.input.max = "1";
+  elements.generate.disabled = true;
+  elements.formMessage.textContent = "";
+  elements.inventoryCount.textContent = `Loading ${source.label.toLowerCase()} inventory...`;
+  elements.dataNote.textContent = `Preparing ${source.label.toLowerCase()} campaign data`;
+
+  try {
+    const response = await fetch(source.url);
     if (!response.ok) {
       throw new Error(`Data request failed with ${response.status}`);
     }
 
     const parsed = parseCsv(await response.text());
     const inventory = consolidateAds(parsed);
+
+    if (
+      requestId !== state.inventoryRequestId ||
+      language !== state.inventoryLanguage
+    ) {
+      return;
+    }
+
     state.ads = inventory.ads;
     state.metadataColumns = inventory.metadataColumns;
     state.metricNames = inventory.metricNames;
@@ -500,15 +609,23 @@ async function loadInventory() {
 
     elements.input.max = String(state.ads.length);
     elements.generate.disabled = false;
-    elements.inventoryCount.textContent = `${state.ads.length} ads available`;
-    elements.dataNote.textContent = `${state.ads.length} ads · ${state.metricNames.length} metrics each`;
+    elements.inventoryCount.textContent = `${state.ads.length} ${source.label.toLowerCase()} ads available`;
+    elements.dataNote.textContent = `${source.label} inventory · ${state.ads.length} ads · ${state.metricNames.length} metrics each`;
     setCount(Math.min(10, state.ads.length));
+
+    if (announce) {
+      showToast(`${source.label} inventory loaded`);
+    }
   } catch (error) {
+    if (requestId !== state.inventoryRequestId) {
+      return;
+    }
+
     console.error(error);
-    elements.inventoryCount.textContent = "Inventory unavailable";
+    elements.inventoryCount.textContent = `${source.label} inventory unavailable`;
     elements.formMessage.textContent =
       "The campaign data could not be loaded. Refresh the page to try again.";
-    elements.dataNote.textContent = "Campaign data unavailable";
+    elements.dataNote.textContent = `${source.label} campaign data unavailable`;
   }
 }
 
@@ -526,6 +643,11 @@ elements.copy.addEventListener("click", copyIds);
 elements.redraw.addEventListener("click", () => generateCampaign({ scroll: false }));
 document.querySelectorAll("[data-count]").forEach((button) => {
   button.addEventListener("click", () => setCount(button.dataset.count));
+});
+elements.languageButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setInventoryLanguage(button.dataset.language);
+  });
 });
 
 window.addEventListener("beforeinstallprompt", (event) => {

@@ -110,6 +110,39 @@ a {
   gap: 12px;
 }
 
+.language-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  background: rgba(255, 254, 248, 0.62);
+}
+
+.language-option {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.language-option:first-child {
+  border-left: 0;
+}
+
+.language-option:hover {
+  color: var(--ink);
+}
+
+.language-option[aria-pressed="true"] {
+  color: #fff;
+  background: var(--blue);
+}
+
 .connection-status {
   display: inline-flex;
   align-items: center;
@@ -753,6 +786,48 @@ a {
   overflow-wrap: anywhere;
 }
 
+.copycat-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+  margin-bottom: 48px;
+  padding: clamp(30px, 5vw, 64px);
+  color: #fff;
+  background: var(--blue);
+  box-shadow: 0 24px 70px rgba(33, 73, 143, 0.2);
+}
+
+.copycat-section .step-label {
+  color: #c6d7f3;
+}
+
+.copycat-section h2 {
+  margin: 10px 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.7rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+.copycat-section p {
+  margin: 0;
+  color: #dce6f6;
+  line-height: 1.55;
+}
+
+.button-copycat {
+  min-width: 210px;
+  min-height: 72px;
+  color: var(--ink);
+  background: var(--orange);
+  text-decoration: none;
+}
+
+.button-copycat:hover {
+  background: #f08058;
+}
+
 footer {
   display: flex;
   justify-content: space-between;
@@ -849,6 +924,16 @@ footer {
 
   .connection-status {
     display: none;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .language-option {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.58rem;
   }
 
   .hero::after {
@@ -976,8 +1061,22 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .copycat-section {
+    grid-template-columns: 1fr;
+  }
+
+  .button-copycat {
+    width: 100%;
+  }
+
   footer {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand > span:last-child {
+    display: none;
   }
 }
 
