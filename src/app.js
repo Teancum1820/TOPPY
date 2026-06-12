@@ -1,6 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 import csvUrl from "../Data/Advertising Table (Just KIs)_data.csv?url";
-import toppyUrl from "../images/Toppy Charecter.png?url";
+import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
   CAMPAIGN_OBJECTIVES,
@@ -25,11 +25,11 @@ const objectiveOptions = CAMPAIGN_OBJECTIVES.map(
 app.innerHTML = `
   <div class="app-shell">
     <header class="site-header">
-      <a class="brand" href="./" aria-label="Top Performer Campaign Maker home">
+      <a class="brand" href="./" aria-label="Toppy home">
         <span class="brand-mark" aria-hidden="true">
           <span></span><span></span><span></span>
         </span>
-        <span>Top Performer</span>
+        <span>Toppy</span>
       </a>
       <div class="header-actions">
         <span class="connection-status" id="connection-status">
@@ -173,7 +173,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Top Performer Campaign Maker</span>
+      <span>Toppy · Version 1.0 · By Caleb Day</span>
       <span id="data-note">Preparing campaign data</span>
     </footer>
   </div>
