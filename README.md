@@ -29,14 +29,12 @@ offline.
 
 The app is configured for:
 
-`https://teancum1820.github.io/Top-Performer-Campaign-Maker/`
+`https://teancum1820.github.io/TOPPY/`
 
 The workflow in `.github/workflows/deploy-pages.yml` validates pull requests
 and deploys `dist/` whenever changes reach `main`.
 
-Before the first deployment, open the repository's **Settings > Pages** and set
-**Source** to **GitHub Actions**. GitHub requires this repository setting before
-a custom Pages workflow can publish the site.
+The repository's Pages source must remain set to **GitHub Actions**.
 
 ## Updating campaign data
 
