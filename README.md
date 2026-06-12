@@ -1,4 +1,4 @@
-# Top Performer Campaign Maker
+# Toppy
 
 A responsive progressive web app that creates unique randomized campaign lists
 from the ad inventory in

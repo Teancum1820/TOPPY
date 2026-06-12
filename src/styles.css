@@ -214,7 +214,6 @@ a {
   bottom: -18%;
   width: min(38vw, 470px);
   max-width: none;
-  mix-blend-mode: multiply;
 }
 
 .mascot-intro {
@@ -278,7 +277,6 @@ a {
   right: -30px;
   bottom: -80px;
   width: clamp(190px, 21vw, 290px);
-  mix-blend-mode: multiply;
   pointer-events: none;
 }
 

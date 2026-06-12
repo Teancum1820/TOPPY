@@ -8,10 +8,10 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
       manifest: {
-        name: "Top Performer Campaign Maker",
-        short_name: "Campaign Maker",
+        name: "Toppy",
+        short_name: "Toppy",
         description:
-          "Create randomized campaign lists from a curated ad inventory.",
+          "Build campaign names and randomized ad lists from a curated inventory.",
         theme_color: "#111c18",
         background_color: "#f4f1e8",
         display: "standalone",
