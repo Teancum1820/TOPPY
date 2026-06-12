@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  base: "/Top-Performer-Campaign-Maker/",
+  base: "/TOPPY/",
   plugins: [
     VitePWA({
       registerType: "autoUpdate",
