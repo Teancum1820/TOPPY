@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { consolidateAds, parseCsv, selectRandomAds } from "../src/data.js";
 
@@ -42,4 +43,22 @@ test("selectRandomAds returns unique ads and clamps the count", () => {
   assert.equal(selection.length, 12);
   assert.equal(new Set(selection.map((ad) => ad.id)).size, 12);
   assert.equal(ads[0].id, "1");
+});
+
+test("English and Spanish inventories contain usable ads and metrics", async () => {
+  const inventories = [
+    ["English", "../Data/English/English Data 6-12-2026.csv"],
+    ["Spanish", "../Data/Spanish/Spanish Data 6-12-2026.csv"]
+  ];
+
+  for (const [language, relativePath] of inventories) {
+    const csv = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    const inventory = consolidateAds(parseCsv(csv));
+
+    assert.ok(inventory.ads.length > 0, `${language} inventory has no ads`);
+    assert.ok(
+      inventory.metricNames.length > 0,
+      `${language} inventory has no metrics`
+    );
+  }
 });
