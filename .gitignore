@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+.audit-screenshots/
+.chrome-campaign-*/
+.chrome-pages-*/
+*.log
+.DS_Store
