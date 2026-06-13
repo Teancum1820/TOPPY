@@ -746,7 +746,10 @@ a {
 }
 
 .text-link {
+  padding: 0;
+  border: 0;
   color: var(--orange-dark);
+  background: transparent;
   font-size: 0.73rem;
   font-weight: 850;
   letter-spacing: 0.07em;
@@ -831,6 +834,11 @@ a {
   font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-weight: 400;
   overflow-wrap: anywhere;
+}
+
+.download-link-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .copycat-section {

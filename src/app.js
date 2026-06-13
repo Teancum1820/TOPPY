@@ -320,7 +320,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 1.3 · By Caleb Day</span>
+      <span>Toppy · Version 1.3.1 · By Caleb Day</span>
       <span id="data-note">Preparing campaign data</span>
     </footer>
   </div>

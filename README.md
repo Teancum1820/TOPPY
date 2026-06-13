@@ -15,6 +15,9 @@ five editable Meta lead-generation campaign concepts. Users provide their own
 Google AI Studio API key for the current browser tab; Toppy does not store or
 bundle the key.
 
+Version 1.3.1 fixes Gemini structured-output requests and ensures downloaded
+New Ads use their Ad ID as the filename.
+
 ## Ad Text setup
 
 1. Create a free Gemini API key in

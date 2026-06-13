@@ -62,14 +62,18 @@ test("buildGeminiRequest enables structured JSON and URL context", () => {
   });
 
   assert.equal(
-    request.generationConfig.responseFormat.text.mimeType,
+    request.generationConfig.responseMimeType,
     "application/json"
   );
+  assert.equal(request.generationConfig.responseFormat, undefined);
   assert.deepEqual(request.tools, [{ urlContext: {} }]);
   assert.equal(
-    request.generationConfig.responseFormat.text.schema.properties.campaigns
-      .minItems,
+    request.generationConfig.responseSchema.properties.campaigns.minItems,
     5
+  );
+  assert.equal(
+    request.generationConfig.responseSchema.properties.campaigns.type,
+    "ARRAY"
   );
 });
 
@@ -100,6 +104,12 @@ test("generateAdText sends the API key only in the request header", async () => 
   assert.equal(campaigns.length, 5);
   assert.doesNotMatch(requestUrl, /test-key/);
   assert.equal(requestOptions.headers["x-goog-api-key"], "test-key");
+  const requestBody = JSON.parse(requestOptions.body);
+  assert.equal(
+    requestBody.generationConfig.responseMimeType,
+    "application/json"
+  );
+  assert.equal(requestBody.generationConfig.responseFormat, undefined);
 });
 
 test("generateAdText surfaces Gemini API errors", async () => {

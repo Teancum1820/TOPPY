@@ -18,7 +18,7 @@ function isTrue(value) {
 function getVideoUrl(record) {
   for (const column of LINK_COLUMNS) {
     const value = clean(record[column]);
-    if (value) {
+    if (getGoogleDriveFileId(value)) {
       return value;
     }
   }
@@ -153,12 +153,106 @@ export function createAdNameFields(ad, startDate) {
   };
 }
 
-export function getGoogleDriveDownloadUrl(url) {
+export function getGoogleDriveFileId(url) {
   const fileMatch = /\/file\/d\/([^/]+)/.exec(url);
   const queryMatch = /[?&]id=([^&]+)/.exec(url);
-  const fileId = fileMatch?.[1] || queryMatch?.[1];
+  return fileMatch?.[1] || queryMatch?.[1] || "";
+}
 
-  return fileId
-    ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
-    : url;
+export function getGoogleDriveDownloadUrl(url) {
+  const fileId = getGoogleDriveFileId(url);
+  if (!fileId) {
+    return "";
+  }
+
+  let resourceKey = "";
+  try {
+    resourceKey = new URL(url).searchParams.get("resourcekey") ?? "";
+  } catch {
+    // The file ID is enough for ordinary shared Drive links.
+  }
+
+  const params = new URLSearchParams({
+    id: fileId,
+    export: "download",
+    confirm: "t"
+  });
+  if (resourceKey) {
+    params.set("resourcekey", resourceKey);
+  }
+
+  return `https://drive.usercontent.google.com/download?${params}`;
+}
+
+const CONTENT_TYPE_EXTENSIONS = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif"
+};
+
+export function getAdDownloadFilename({
+  adId,
+  format = "Video",
+  contentType = ""
+}) {
+  const safeId =
+    clean(adId)
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+      .replace(/[.\s]+$/g, "") || "toppy-ad";
+  const normalizedType = clean(contentType).split(";")[0].toLowerCase();
+  const extension =
+    CONTENT_TYPE_EXTENSIONS[normalizedType] ||
+    (format === "Image" ? "jpg" : "mp4");
+
+  return `${safeId}.${extension}`;
+}
+
+export async function downloadNewAdFile({
+  url,
+  adId,
+  format = "Video",
+  fetchImpl = fetch,
+  documentRef = globalThis.document,
+  urlApi = globalThis.URL,
+  revokeDelay = 1000
+}) {
+  const downloadUrl = getGoogleDriveDownloadUrl(url);
+  if (!downloadUrl) {
+    throw new Error("This Drive link does not point to a downloadable file.");
+  }
+
+  const response = await fetchImpl(downloadUrl);
+  if (!response.ok) {
+    throw new Error(`Google Drive download failed with ${response.status}.`);
+  }
+
+  const blob = await response.blob();
+  if (blob.size === 0) {
+    throw new Error("Google Drive returned an empty file.");
+  }
+
+  const filename = getAdDownloadFilename({
+    adId,
+    format,
+    contentType: blob.type || response.headers.get("Content-Type") || ""
+  });
+  const objectUrl = urlApi.createObjectURL(blob);
+  const anchor = documentRef.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.hidden = true;
+  documentRef.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => urlApi.revokeObjectURL(objectUrl), revokeDelay);
+
+  return {
+    filename,
+    size: blob.size,
+    type: blob.type
+  };
 }
