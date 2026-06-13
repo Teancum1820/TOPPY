@@ -204,6 +204,42 @@ test("downloadNewAdFile creates a local download named with the Ad ID", async ()
   assert.deepEqual(revoked, ["blob:toppy-video"]);
 });
 
+test("downloadNewAdFile falls back to a direct Drive download when fetch is blocked", async () => {
+  const clicks = [];
+  const anchor = {
+    hidden: false,
+    href: "",
+    download: "",
+    click() {
+      clicks.push({ href: this.href, download: this.download });
+    },
+    remove() {}
+  };
+
+  const result = await downloadNewAdFile({
+    url: "https://drive.google.com/file/d/abc123/view",
+    adId: "Mar26-00042",
+    fetchImpl: async () => {
+      throw new TypeError("Failed to fetch");
+    },
+    documentRef: {
+      createElement: () => anchor,
+      body: {
+        append() {}
+      }
+    }
+  });
+
+  assert.equal(result.filename, "Mar26-00042.mp4");
+  assert.deepEqual(clicks, [
+    {
+      href:
+        "https://drive.usercontent.google.com/download?id=abc123&export=download&confirm=t",
+      download: "Mar26-00042.mp4"
+    }
+  ]);
+});
+
 test("real March data supports five English ads rated three or above", async () => {
   const csv = await readFile(
     new URL(
