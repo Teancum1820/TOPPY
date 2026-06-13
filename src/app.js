@@ -1,6 +1,11 @@
 import { registerSW } from "virtual:pwa-register";
 import englishCsvUrl from "../Data/English/English Data 6-12-2026.csv?url";
 import spanishCsvUrl from "../Data/Spanish/Spanish Data 6-12-2026.csv?url";
+import januaryNewAdsUrl from "../New Ads/Missionary Content Initiative - January 2026.csv?url";
+import februaryNewAdsUrl from "../New Ads/Missionary Content Initiative - February 2026.csv?url";
+import marchNewAdsUrl from "../New Ads/Missionary Content Initiative - March 2026.csv?url";
+import aprilNewAdsUrl from "../New Ads/Missionary Content Initiative - April 2026.csv?url";
+import mayNewAdsUrl from "../New Ads/Missionary Content Initiative - May 2026.csv?url";
 import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
@@ -8,6 +13,7 @@ import {
   getLocalDateInputValue
 } from "./campaign-name.js";
 import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
+import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
 
 const LANGUAGE_STORAGE_KEY = "toppy-ad-language";
@@ -21,6 +27,38 @@ const INVENTORY_SOURCES = {
     url: spanishCsvUrl
   }
 };
+const NEW_AD_SOURCES = [
+  {
+    month: "2026-01",
+    monthLabel: "January 2026",
+    label: "January 2026",
+    url: januaryNewAdsUrl
+  },
+  {
+    month: "2026-02",
+    monthLabel: "February 2026",
+    label: "February 2026",
+    url: februaryNewAdsUrl
+  },
+  {
+    month: "2026-03",
+    monthLabel: "March 2026",
+    label: "March 2026",
+    url: marchNewAdsUrl
+  },
+  {
+    month: "2026-04",
+    monthLabel: "April 2026",
+    label: "April 2026",
+    url: aprilNewAdsUrl
+  },
+  {
+    month: "2026-05",
+    monthLabel: "May 2026",
+    label: "May 2026",
+    url: mayNewAdsUrl
+  }
+];
 
 function getInitialLanguage() {
   try {
@@ -56,7 +94,7 @@ app.innerHTML = `
         <span>Toppy</span>
       </a>
       <div class="header-actions">
-        <div class="language-toggle" role="group" aria-label="Ad language">
+        <div class="language-toggle" role="group" aria-label="Ad language" data-top-ads-control>
           <button
             class="language-option"
             type="button"
@@ -84,7 +122,31 @@ app.innerHTML = `
       </div>
     </header>
 
+    <nav class="app-tabs" role="tablist" aria-label="Toppy tools">
+      <button
+        class="app-tab active"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="top-ads-panel"
+        data-tab="top-ads"
+      >
+        Top Ads
+      </button>
+      <button
+        class="app-tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="new-ads-panel"
+        data-tab="new-ads"
+      >
+        New Ads
+      </button>
+    </nav>
+
     <main>
+      <div id="top-ads-panel" role="tabpanel" data-tab-panel="top-ads">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-content">
           <div class="eyebrow">Campaign utility / randomizer</div>
@@ -229,10 +291,18 @@ app.innerHTML = `
           <span aria-hidden="true">↗</span>
         </a>
       </section>
+      </div>
+      <section
+        class="new-ads-page"
+        id="new-ads-panel"
+        role="tabpanel"
+        data-tab-panel="new-ads"
+        hidden
+      ></section>
     </main>
 
     <footer>
-      <span>Toppy · Version 1.0 · By Caleb Day</span>
+      <span>Toppy · Version 1.2 · By Caleb Day</span>
       <span id="data-note">Preparing campaign data</span>
     </footer>
   </div>
@@ -263,8 +333,34 @@ const elements = {
   toast: document.querySelector("#toast"),
   connectionStatus: document.querySelector("#connection-status"),
   dataNote: document.querySelector("#data-note"),
-  languageButtons: document.querySelectorAll("[data-language]")
+  languageButtons: document.querySelectorAll("[data-language]"),
+  languageToggle: document.querySelector("[data-top-ads-control]"),
+  tabButtons: document.querySelectorAll("[data-tab]"),
+  tabPanels: document.querySelectorAll("[data-tab-panel]")
 };
+
+const newAdsController = createNewAdsController({
+  root: document.querySelector("#new-ads-panel"),
+  sources: NEW_AD_SOURCES,
+  copyText,
+  showToast
+});
+
+function setActiveTab(tabName) {
+  elements.tabButtons.forEach((button) => {
+    const active = button.dataset.tab === tabName;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  elements.tabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== tabName;
+  });
+  elements.languageToggle.hidden = tabName !== "top-ads";
+
+  if (tabName === "new-ads") {
+    newAdsController.load();
+  }
+}
 
 function findField(ad, pattern) {
   const fieldName = Object.keys(ad.fields).find((name) => pattern.test(name));
@@ -647,6 +743,11 @@ document.querySelectorAll("[data-count]").forEach((button) => {
 elements.languageButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setInventoryLanguage(button.dataset.language);
+  });
+});
+elements.tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveTab(button.dataset.tab);
   });
 });
 
