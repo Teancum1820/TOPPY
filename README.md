@@ -10,6 +10,27 @@ Version 1.2 adds a **New Ads** tab that filters the monthly Missionary Content
 Initiative CSV files by language, month, rating, format, and status. Selected
 Google Drive links are paired with editable Campaign, Adset, and Ad names.
 
+Version 1.3 adds an **Ad Text** tab that uses Google Gemini 3.5 Flash to create
+five editable Meta lead-generation campaign concepts. Users provide their own
+Google AI Studio API key for the current browser tab; Toppy does not store or
+bundle the key.
+
+Version 1.3.1 fixes Gemini structured-output requests and ensures downloaded
+New Ads use their Ad ID as the filename.
+
+## Ad Text setup
+
+1. Create a free Gemini API key in
+   [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Open the Ad Text tab and paste the key.
+3. Select an Ad Topic and Ad Blessing, then add optional notes or a public
+   source URL.
+
+The Gemini free tier may use submitted content to improve Google's products.
+Do not submit confidential or personal information. Use a separate key
+restricted to the Gemini API and rotate it if it is exposed; a static browser
+app cannot protect a key as securely as a backend proxy.
+
 ## Run locally
 
 ```sh
