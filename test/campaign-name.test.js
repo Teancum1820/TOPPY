@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAdName,
+  buildAdsetName,
   buildCampaignName,
   formatCampaignDate,
   getLocalDateInputValue
@@ -40,5 +42,35 @@ test("getLocalDateInputValue uses local calendar fields", () => {
   assert.equal(
     getLocalDateInputValue(new Date(2026, 5, 12, 23, 30)),
     "2026-06-12"
+  );
+});
+
+test("buildAdsetName matches the reference naming convention", () => {
+  assert.equal(
+    buildAdsetName({
+      description: "March English",
+      startDate: "2026-06-12",
+      language: "English",
+      audienceId: "A-12",
+      trackingId: "T-4"
+    }),
+    "_ASD:March English_ASSD:06/12/2026_ASL:English_AID:A-12_TID:T-4_"
+  );
+});
+
+test("buildAdName matches the reference naming convention", () => {
+  assert.equal(
+    buildAdName({
+      description: "Come to Church",
+      startDate: "2026-06-12",
+      topic: "Church",
+      blessing: "Peace",
+      subject: "Missionaries",
+      format: "Video",
+      localized: "False",
+      creativeId: "Mar26-00042",
+      testingId: "Test 1"
+    }),
+    "_AD:Come to Church_ASD:06/12/2026_AT:Church_AB:Peace_AS:Missionaries_AF:Video_AL:False_TID:Mar26-00042_TEST:Test 1_"
   );
 });

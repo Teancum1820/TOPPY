@@ -41,6 +41,46 @@ export function buildCampaignName({
   ].join("");
 }
 
+export function buildAdsetName({
+  description = "",
+  startDate = "",
+  language = "",
+  audienceId = "",
+  trackingId = ""
+} = {}) {
+  return [
+    `_ASD:${cleanSegment(description)}`,
+    `_ASSD:${formatCampaignDate(startDate)}`,
+    `_ASL:${cleanSegment(language)}`,
+    `_AID:${cleanSegment(audienceId)}`,
+    `_TID:${cleanSegment(trackingId)}_`
+  ].join("");
+}
+
+export function buildAdName({
+  description = "",
+  startDate = "",
+  topic = "",
+  blessing = "",
+  subject = "",
+  format = "",
+  localized = "",
+  creativeId = "",
+  testingId = ""
+} = {}) {
+  return [
+    `_AD:${cleanSegment(description)}`,
+    `_ASD:${formatCampaignDate(startDate)}`,
+    `_AT:${cleanSegment(topic)}`,
+    `_AB:${cleanSegment(blessing)}`,
+    `_AS:${cleanSegment(subject)}`,
+    `_AF:${cleanSegment(format)}`,
+    `_AL:${cleanSegment(localized)}`,
+    `_TID:${cleanSegment(creativeId)}`,
+    `_TEST:${cleanSegment(testingId)}_`
+  ].join("");
+}
+
 export function getLocalDateInputValue(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

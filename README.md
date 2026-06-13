@@ -1,11 +1,14 @@
 # Toppy
 
 A responsive progressive web app that creates unique randomized campaign lists
-from the ad inventory in
-`Data/Advertising Table (Just KIs)_data.csv`.
+from the English and Spanish top-performer inventories in `Data/`.
 
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
+
+Version 1.2 adds a **New Ads** tab that filters the monthly Missionary Content
+Initiative CSV files by language, month, rating, format, and status. Selected
+Google Drive links are paired with editable Campaign, Adset, and Ad names.
 
 ## Run locally
 
@@ -38,6 +41,7 @@ The repository's Pages source must remain set to **GitHub Actions**.
 
 ## Updating campaign data
 
-Replace the CSV in `Data/` and rebuild the app. Ad IDs are kept as strings so
-long IDs do not lose precision. Rows sharing an ad ID are consolidated, and
+Replace the language CSVs in `Data/` or the monthly creative CSVs in `New Ads/`,
+then rebuild the app. Ad IDs are kept as strings so long IDs do not lose
+precision. Top-performer rows sharing an ad ID are consolidated, and
 `Measure Names` / `Measure Values` rows are shown as performance metrics.
