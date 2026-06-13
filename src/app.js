@@ -13,6 +13,7 @@ import {
   getLocalDateInputValue
 } from "./campaign-name.js";
 import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
+import { createAdTextController } from "./ad-text-ui.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
 
@@ -142,6 +143,16 @@ app.innerHTML = `
         data-tab="new-ads"
       >
         New Ads
+      </button>
+      <button
+        class="app-tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="ad-text-panel"
+        data-tab="ad-text"
+      >
+        Ad Text
       </button>
     </nav>
 
@@ -299,10 +310,17 @@ app.innerHTML = `
         data-tab-panel="new-ads"
         hidden
       ></section>
+      <section
+        class="ad-text-page"
+        id="ad-text-panel"
+        role="tabpanel"
+        data-tab-panel="ad-text"
+        hidden
+      ></section>
     </main>
 
     <footer>
-      <span>Toppy · Version 1.2 · By Caleb Day</span>
+      <span>Toppy · Version 1.3 · By Caleb Day</span>
       <span id="data-note">Preparing campaign data</span>
     </footer>
   </div>
@@ -342,6 +360,11 @@ const elements = {
 const newAdsController = createNewAdsController({
   root: document.querySelector("#new-ads-panel"),
   sources: NEW_AD_SOURCES,
+  copyText,
+  showToast
+});
+createAdTextController({
+  root: document.querySelector("#ad-text-panel"),
   copyText,
   showToast
 });
