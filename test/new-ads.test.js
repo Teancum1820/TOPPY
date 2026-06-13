@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   createAdNameFields,
+  downloadNewAdFile,
   filterNewAds,
   generateToppyAdId,
+  getAdDownloadFilename,
   getGoogleDriveDownloadUrl,
   parseNewAdsCsv
 } from "../src/new-ads.js";
@@ -28,6 +30,25 @@ test("parseNewAdsCsv maps linked rows and generates missing IDs", () => {
   assert.equal(ads[0].format, "Image");
   assert.equal(ads[1].id, "TPY-GENERATED");
   assert.equal(ads[1].generatedId, true);
+});
+
+test("parseNewAdsCsv skips Drive folders and uses the next valid file link", () => {
+  const csv = [
+    "Mission,Creative ID,Final Video Link,Edited by FSC Link",
+    "Denver,Mar26-100,https://drive.google.com/drive/folders/folder123,https://drive.google.com/file/d/video123/view",
+    "Boise,Mar26-101,https://drive.google.com/drive/folders/folder456,"
+  ].join("\n");
+
+  const ads = parseNewAdsCsv(csv, {
+    month: "2026-03",
+    monthLabel: "March 2026"
+  });
+
+  assert.equal(ads.length, 1);
+  assert.equal(
+    ads[0].videoUrl,
+    "https://drive.google.com/file/d/video123/view"
+  );
 });
 
 test("filterNewAds combines language, month, rating, format, and status", () => {
@@ -105,8 +126,82 @@ test("ID and Drive helpers return usable values", () => {
   );
   assert.equal(
     getGoogleDriveDownloadUrl("https://drive.google.com/file/d/abc123/view"),
-    "https://drive.google.com/uc?export=download&id=abc123"
+    "https://drive.usercontent.google.com/download?id=abc123&export=download&confirm=t"
   );
+});
+
+test("download filenames use the Ad ID and media type", () => {
+  assert.equal(
+    getAdDownloadFilename({
+      adId: "Mar26-00042",
+      format: "Video",
+      contentType: "video/quicktime"
+    }),
+    "Mar26-00042.mov"
+  );
+  assert.equal(
+    getAdDownloadFilename({
+      adId: "TPY:bad/name",
+      format: "Image",
+      contentType: "image/png"
+    }),
+    "TPY-bad-name.png"
+  );
+});
+
+test("downloadNewAdFile creates a local download named with the Ad ID", async () => {
+  const clicks = [];
+  const appended = [];
+  const revoked = [];
+  const anchor = {
+    hidden: false,
+    href: "",
+    download: "",
+    click() {
+      clicks.push({ href: this.href, download: this.download });
+    },
+    remove() {}
+  };
+
+  const result = await downloadNewAdFile({
+    url: "https://drive.google.com/file/d/abc123/view",
+    adId: "Mar26-00042",
+    fetchImpl: async (url) => {
+      assert.equal(
+        url,
+        "https://drive.usercontent.google.com/download?id=abc123&export=download&confirm=t"
+      );
+      return {
+        ok: true,
+        headers: new Headers({ "Content-Type": "video/mp4" }),
+        blob: async () => new Blob(["video"], { type: "video/mp4" })
+      };
+    },
+    documentRef: {
+      createElement: () => anchor,
+      body: {
+        append(element) {
+          appended.push(element);
+        }
+      }
+    },
+    urlApi: {
+      createObjectURL: () => "blob:toppy-video",
+      revokeObjectURL: (url) => revoked.push(url)
+    },
+    revokeDelay: 0
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(result.filename, "Mar26-00042.mp4");
+  assert.equal(appended.length, 1);
+  assert.deepEqual(clicks, [
+    {
+      href: "blob:toppy-video",
+      download: "Mar26-00042.mp4"
+    }
+  ]);
+  assert.deepEqual(revoked, ["blob:toppy-video"]);
 });
 
 test("real March data supports five English ads rated three or above", async () => {

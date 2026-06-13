@@ -21,15 +21,15 @@ export const AD_BLESSINGS = [
 ];
 
 const AD_TEXT_SCHEMA = {
-  type: "object",
+  type: "OBJECT",
   required: ["campaigns"],
   properties: {
     campaigns: {
-      type: "array",
+      type: "ARRAY",
       minItems: 5,
       maxItems: 5,
       items: {
-        type: "object",
+        type: "OBJECT",
         required: [
           "campaignName",
           "angle",
@@ -39,30 +39,30 @@ const AD_TEXT_SCHEMA = {
         ],
         properties: {
           campaignName: {
-            type: "string",
+            type: "STRING",
             description: "A short internal name for this campaign concept."
           },
           angle: {
-            type: "string",
+            type: "STRING",
             description: "A one-sentence summary of the emotional and spiritual angle."
           },
           primaryTexts: {
-            type: "array",
+            type: "ARRAY",
             minItems: 3,
             maxItems: 3,
-            items: { type: "string" }
+            items: { type: "STRING" }
           },
           headlines: {
-            type: "array",
+            type: "ARRAY",
             minItems: 3,
             maxItems: 3,
-            items: { type: "string" }
+            items: { type: "STRING" }
           },
           descriptions: {
-            type: "array",
+            type: "ARRAY",
             minItems: 3,
             maxItems: 3,
-            items: { type: "string" }
+            items: { type: "STRING" }
           }
         }
       }
@@ -181,12 +181,8 @@ export function buildGeminiRequest(input) {
     generationConfig: {
       temperature: 0.9,
       maxOutputTokens: 8192,
-      responseFormat: {
-        text: {
-          mimeType: "application/json",
-          schema: AD_TEXT_SCHEMA
-        }
-      }
+      responseMimeType: "application/json",
+      responseSchema: AD_TEXT_SCHEMA
     }
   };
 

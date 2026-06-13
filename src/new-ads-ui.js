@@ -7,8 +7,8 @@ import {
 } from "./campaign-name.js";
 import {
   createAdNameFields,
+  downloadNewAdFile,
   filterNewAds,
-  getGoogleDriveDownloadUrl,
   getNewAdFilterOptions,
   parseNewAdsCsv,
   selectFilteredNewAds
@@ -332,11 +332,37 @@ export function createNewAdsController({
     openLink.href = ad.videoUrl;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
-    const downloadLink = createElement("a", "text-link", "Download video ↗");
-    downloadLink.href = getGoogleDriveDownloadUrl(ad.videoUrl);
-    downloadLink.target = "_blank";
-    downloadLink.rel = "noopener noreferrer";
-    actions.append(openLink, downloadLink);
+    const downloadButton = createElement(
+      "button",
+      "text-link download-link-button",
+      `Download as ${ad.id}`
+    );
+    downloadButton.type = "button";
+    downloadButton.addEventListener("click", async () => {
+      const originalLabel = downloadButton.textContent;
+      downloadButton.disabled = true;
+      downloadButton.textContent = "Preparing download...";
+
+      try {
+        const result = await downloadNewAdFile({
+          url: ad.videoUrl,
+          adId: ad.id,
+          format: ad.format
+        });
+        showToast(`${result.filename} downloaded`);
+      } catch (error) {
+        console.error(error);
+        showToast(
+          error instanceof Error
+            ? error.message
+            : "The Drive file could not be downloaded."
+        );
+      } finally {
+        downloadButton.disabled = false;
+        downloadButton.textContent = originalLabel;
+      }
+    });
+    actions.append(openLink, downloadButton);
     heading.append(identity, actions);
     card.append(heading);
 
