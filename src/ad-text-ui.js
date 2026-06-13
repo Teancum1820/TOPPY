@@ -44,7 +44,7 @@ export function createAdTextController({
   root.innerHTML = `
     <section class="ad-text-hero">
       <div>
-        <span class="eyebrow">Version 1.3 / Gemini-powered copy</span>
+        <span class="eyebrow">Version 1.3.1 / Gemini-powered copy</span>
         <h1>Turn doctrine into<br><em>clear invitations.</em></h1>
         <p>
           Select an Ad Topic and Ad Blessing, add campaign context, and generate
