@@ -211,6 +211,16 @@ export function getAdDownloadFilename({
   return `${safeId}.${extension}`;
 }
 
+function clickDownloadLink({ href, filename, documentRef }) {
+  const anchor = documentRef.createElement("a");
+  anchor.href = href;
+  anchor.download = filename;
+  anchor.hidden = true;
+  documentRef.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
 export async function downloadNewAdFile({
   url,
   adId,
@@ -225,7 +235,24 @@ export async function downloadNewAdFile({
     throw new Error("This Drive link does not point to a downloadable file.");
   }
 
-  const response = await fetchImpl(downloadUrl);
+  let response;
+  try {
+    response = await fetchImpl(downloadUrl);
+  } catch {
+    const filename = getAdDownloadFilename({ adId, format });
+    clickDownloadLink({
+      href: downloadUrl,
+      filename,
+      documentRef
+    });
+
+    return {
+      filename,
+      size: null,
+      type: ""
+    };
+  }
+
   if (!response.ok) {
     throw new Error(`Google Drive download failed with ${response.status}.`);
   }
@@ -241,13 +268,11 @@ export async function downloadNewAdFile({
     contentType: blob.type || response.headers.get("Content-Type") || ""
   });
   const objectUrl = urlApi.createObjectURL(blob);
-  const anchor = documentRef.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = filename;
-  anchor.hidden = true;
-  documentRef.body.append(anchor);
-  anchor.click();
-  anchor.remove();
+  clickDownloadLink({
+    href: objectUrl,
+    filename,
+    documentRef
+  });
   setTimeout(() => urlApi.revokeObjectURL(objectUrl), revokeDelay);
 
   return {
