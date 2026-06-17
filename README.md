@@ -1,7 +1,11 @@
 # Toppy
 
-A responsive progressive web app for campaign naming, new-ad preparation, and
-AI-assisted ad text generation.
+A responsive progressive web app for campaign naming, user-provided top-ad CSV
+randomization, new-ad preparation, and AI-assisted ad text generation.
+
+Toppy is not affiliated with the FSC. Toppy does not provide ad data, campaign
+data, or top-performer inventory files. Users must upload their own CSV data
+file before the Top Ads randomizer can select ads.
 
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
@@ -17,6 +21,9 @@ bundle the key.
 
 Version 1.3.1 fixes Gemini structured-output requests and ensures downloaded
 New Ads use their Ad ID as the filename.
+
+Version 2.0 removes bundled top-performer data and adds user-provided CSV upload
+for random top performer selection.
 
 ## Ad Text setup
 
@@ -47,7 +54,8 @@ npm run preview
 
 The production build is written to `dist/`. The generated service worker
 precaches the application and bundled New Ads CSV files so an installed app can
-continue working offline.
+continue working offline. Top Ads CSV data is not bundled; users upload their
+own CSV file in the browser.
 
 ## GitHub Pages
 
