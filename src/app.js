@@ -1,6 +1,4 @@
 import { registerSW } from "virtual:pwa-register";
-import englishCsvUrl from "../Data/English/English Data 6-12-2026.csv?url";
-import spanishCsvUrl from "../Data/Spanish/Spanish Data 6-12-2026.csv?url";
 import januaryNewAdsUrl from "../New Ads/Missionary Content Initiative - January 2026.csv?url";
 import februaryNewAdsUrl from "../New Ads/Missionary Content Initiative - February 2026.csv?url";
 import marchNewAdsUrl from "../New Ads/Missionary Content Initiative - March 2026.csv?url";
@@ -12,7 +10,7 @@ import {
   CAMPAIGN_OBJECTIVES,
   getLocalDateInputValue
 } from "./campaign-name.js";
-import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
+import { selectRandomAds } from "./data.js";
 import { createAdTextController } from "./ad-text-ui.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
@@ -20,12 +18,10 @@ import "./styles.css";
 const LANGUAGE_STORAGE_KEY = "toppy-ad-language";
 const INVENTORY_SOURCES = {
   en: {
-    label: "English",
-    url: englishCsvUrl
+    label: "English"
   },
   es: {
-    label: "Spanish",
-    url: spanishCsvUrl
+    label: "Spanish"
   }
 };
 const NEW_AD_SOURCES = [
@@ -234,7 +230,7 @@ app.innerHTML = `
             <h2 id="generator-title">How many ads?</h2>
           </div>
           <div class="inventory-count" id="inventory-count" aria-live="polite">
-            Loading inventory...
+            Top-performer inventory removed
           </div>
         </div>
 
@@ -279,7 +275,7 @@ app.innerHTML = `
           <span class="empty-number">00</span>
           <div>
             <h3>Your campaign will appear here.</h3>
-            <p>Select a size above to draw ads from the inventory.</p>
+            <p>The top-performer inventory has been removed.</p>
           </div>
         </div>
         <div class="result-summary" id="result-summary" hidden></div>
@@ -321,7 +317,7 @@ app.innerHTML = `
 
     <footer>
       <span>Toppy · Version 1.3.1 · By Caleb Day</span>
-      <span id="data-note">Preparing campaign data</span>
+      <span id="data-note">Top-performer inventory removed</span>
     </footer>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -698,53 +694,17 @@ async function loadInventory({ announce = false } = {}) {
   renderResults();
   elements.input.max = "1";
   elements.generate.disabled = true;
-  elements.formMessage.textContent = "";
-  elements.inventoryCount.textContent = `Loading ${source.label.toLowerCase()} inventory...`;
-  elements.dataNote.textContent = `Preparing ${source.label.toLowerCase()} campaign data`;
+  elements.formMessage.textContent =
+    "The top-performer inventory has been removed.";
+  elements.inventoryCount.textContent = `${source.label} inventory removed`;
+  elements.dataNote.textContent = "Top-performer inventory removed";
 
-  try {
-    const response = await fetch(source.url);
-    if (!response.ok) {
-      throw new Error(`Data request failed with ${response.status}`);
-    }
+  if (requestId !== state.inventoryRequestId) {
+    return;
+  }
 
-    const parsed = parseCsv(await response.text());
-    const inventory = consolidateAds(parsed);
-
-    if (
-      requestId !== state.inventoryRequestId ||
-      language !== state.inventoryLanguage
-    ) {
-      return;
-    }
-
-    state.ads = inventory.ads;
-    state.metadataColumns = inventory.metadataColumns;
-    state.metricNames = inventory.metricNames;
-
-    if (state.ads.length === 0) {
-      throw new Error("No valid ad IDs were found in the CSV.");
-    }
-
-    elements.input.max = String(state.ads.length);
-    elements.generate.disabled = false;
-    elements.inventoryCount.textContent = `${state.ads.length} ${source.label.toLowerCase()} ads available`;
-    elements.dataNote.textContent = `${source.label} inventory · ${state.ads.length} ads · ${state.metricNames.length} metrics each`;
-    setCount(Math.min(10, state.ads.length));
-
-    if (announce) {
-      showToast(`${source.label} inventory loaded`);
-    }
-  } catch (error) {
-    if (requestId !== state.inventoryRequestId) {
-      return;
-    }
-
-    console.error(error);
-    elements.inventoryCount.textContent = `${source.label} inventory unavailable`;
-    elements.formMessage.textContent =
-      "The campaign data could not be loaded. Refresh the page to try again.";
-    elements.dataNote.textContent = `${source.label} campaign data unavailable`;
+  if (announce) {
+    showToast(`${source.label} inventory removed`);
   }
 }
 
