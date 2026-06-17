@@ -1,7 +1,7 @@
 # Toppy
 
-A responsive progressive web app that creates unique randomized campaign lists
-from the English and Spanish top-performer inventories in `Data/`.
+A responsive progressive web app for campaign naming, new-ad preparation, and
+AI-assisted ad text generation.
 
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
@@ -46,8 +46,8 @@ npm run preview
 ```
 
 The production build is written to `dist/`. The generated service worker
-precaches the application and CSV so an installed app can continue working
-offline.
+precaches the application and bundled New Ads CSV files so an installed app can
+continue working offline.
 
 ## GitHub Pages
 
@@ -60,9 +60,7 @@ and deploys `dist/` whenever changes reach `main`.
 
 The repository's Pages source must remain set to **GitHub Actions**.
 
-## Updating campaign data
+## Updating creative data
 
-Replace the language CSVs in `Data/` or the monthly creative CSVs in `New Ads/`,
-then rebuild the app. Ad IDs are kept as strings so long IDs do not lose
-precision. Top-performer rows sharing an ad ID are consolidated, and
-`Measure Names` / `Measure Values` rows are shown as performance metrics.
+Replace the monthly creative CSVs in `New Ads/`, then rebuild the app. Ad IDs
+are kept as strings so long IDs do not lose precision.
