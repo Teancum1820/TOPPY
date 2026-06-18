@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   createAdNameFields,
@@ -30,6 +29,22 @@ test("parseNewAdsCsv maps linked rows and generates missing IDs", () => {
   assert.equal(ads[0].format, "Image");
   assert.equal(ads[1].id, "TPY-GENERATED");
   assert.equal(ads[1].generatedId, true);
+});
+
+test("parseNewAdsCsv accepts uploaded data with a plain Language column", () => {
+  const csv = [
+    "Mission,Language,Script / Topic,Creative ID,Image?,Rating,Status,Final Video Link",
+    "Denver,English,Come to Church,Upload-100,FALSE,4,Available for Use,https://drive.google.com/file/d/abc/view"
+  ].join("\n");
+
+  const ads = parseNewAdsCsv(csv, {
+    month: "upload-1",
+    monthLabel: "My Upload"
+  });
+
+  assert.equal(ads.length, 1);
+  assert.equal(ads[0].language, "English");
+  assert.equal(ads[0].monthLabel, "My Upload");
 });
 
 test("parseNewAdsCsv skips Drive folders and uses the next valid file link", () => {
@@ -240,29 +255,29 @@ test("downloadNewAdFile falls back to a direct Drive download when fetch is bloc
   ]);
 });
 
-test("real March data supports five English ads rated three or above", async () => {
-  const csv = await readFile(
-    new URL(
-      "../New Ads/Missionary Content Initiative - March 2026.csv",
-      import.meta.url
-    ),
-    "utf8"
-  );
+test("uploaded CSV data supports filtering by language and rating", () => {
+  const csv = [
+    "Mission,Language,Script / Topic,Creative ID,Image?,Rating,Status,Final Video Link",
+    "Denver,English,Come to Church,Upload-100,FALSE,4,Available for Use,https://drive.google.com/file/d/abc/view",
+    "Boise,English,Faith,Upload-101,FALSE,2,Available for Use,https://drive.google.com/file/d/def/view",
+    "Provo,Spanish,Prayer,Upload-102,TRUE,5,Rating Pending,https://drive.google.com/file/d/ghi/view"
+  ].join("\n");
   const ads = parseNewAdsCsv(csv, {
-    month: "2026-03",
-    monthLabel: "March 2026"
+    month: "upload-1",
+    monthLabel: "My Upload"
   });
 
-  assert.ok(
+  assert.equal(
     filterNewAds(ads, {
       language: "English",
-      month: "2026-03",
       minRating: "3"
-    }).length >= 5
+    }).length,
+    1
   );
-  assert.ok(
+  assert.equal(
     filterNewAds(ads, {
       language: "Spanish"
-    }).length >= 10
+    }).length,
+    1
   );
 });

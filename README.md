@@ -10,9 +10,10 @@ file before the Top Ads randomizer can select ads.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
-Version 1.2 adds a **New Ads** tab that filters the monthly Missionary Content
-Initiative CSV files by language, month, rating, format, and status. Selected
-Google Drive links are paired with editable Campaign, Adset, and Ad names.
+Version 2.1 removes bundled New Video Data and the Ad Text generator. The
+**New Ads** tab now requires users to upload their own New Video Data CSV files
+before filtering, drawing, copying links, downloading Drive files, or generating
+editable Campaign, Adset, and Ad names.
 
 Version 1.3 adds an **Ad Text** tab that uses Google Gemini 3.5 Flash to create
 five editable Meta lead-generation campaign concepts. Users provide their own
