@@ -1,9 +1,4 @@
 import { registerSW } from "virtual:pwa-register";
-import januaryNewAdsUrl from "../New Ads/Missionary Content Initiative - January 2026.csv?url";
-import februaryNewAdsUrl from "../New Ads/Missionary Content Initiative - February 2026.csv?url";
-import marchNewAdsUrl from "../New Ads/Missionary Content Initiative - March 2026.csv?url";
-import aprilNewAdsUrl from "../New Ads/Missionary Content Initiative - April 2026.csv?url";
-import mayNewAdsUrl from "../New Ads/Missionary Content Initiative - May 2026.csv?url";
 import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
@@ -13,39 +8,6 @@ import {
 import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
-
-const NEW_AD_SOURCES = [
-  {
-    month: "2026-01",
-    monthLabel: "January 2026",
-    label: "January 2026",
-    url: januaryNewAdsUrl
-  },
-  {
-    month: "2026-02",
-    monthLabel: "February 2026",
-    label: "February 2026",
-    url: februaryNewAdsUrl
-  },
-  {
-    month: "2026-03",
-    monthLabel: "March 2026",
-    label: "March 2026",
-    url: marchNewAdsUrl
-  },
-  {
-    month: "2026-04",
-    monthLabel: "April 2026",
-    label: "April 2026",
-    url: aprilNewAdsUrl
-  },
-  {
-    month: "2026-05",
-    monthLabel: "May 2026",
-    label: "May 2026",
-    url: mayNewAdsUrl
-  }
-];
 
 const state = {
   ads: [],
@@ -276,8 +238,8 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.0 · By Caleb Day</span>
-      <span id="data-note">No data provided; upload your own CSV.</span>
+      <span>Toppy · Version 2.1 · By Caleb Day</span>
+      <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
   </div>
@@ -626,7 +588,7 @@ function resetUploadedData(message = "Upload your own CSV to begin.") {
   elements.generate.disabled = true;
   elements.formMessage.textContent = message;
   elements.inventoryCount.textContent = "No CSV loaded";
-  elements.dataNote.textContent = "No data provided; upload your own CSV.";
+  elements.dataNote.textContent = "No data is stored";
 }
 
 async function handleCsvUpload() {
