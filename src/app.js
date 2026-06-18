@@ -1,11 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 import englishCsvUrl from "../Data/English/English Data 6-12-2026.csv?url";
 import spanishCsvUrl from "../Data/Spanish/Spanish Data 6-12-2026.csv?url";
-import januaryNewAdsUrl from "../New Ads/Missionary Content Initiative - January 2026.csv?url";
-import februaryNewAdsUrl from "../New Ads/Missionary Content Initiative - February 2026.csv?url";
-import marchNewAdsUrl from "../New Ads/Missionary Content Initiative - March 2026.csv?url";
-import aprilNewAdsUrl from "../New Ads/Missionary Content Initiative - April 2026.csv?url";
-import mayNewAdsUrl from "../New Ads/Missionary Content Initiative - May 2026.csv?url";
 import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
@@ -13,11 +8,9 @@ import {
   getLocalDateInputValue
 } from "./campaign-name.js";
 import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
-import { createAdTextController } from "./ad-text-ui.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
 
-const LANGUAGE_STORAGE_KEY = "toppy-ad-language";
 const INVENTORY_SOURCES = {
   en: {
     label: "English",
@@ -28,55 +21,13 @@ const INVENTORY_SOURCES = {
     url: spanishCsvUrl
   }
 };
-const NEW_AD_SOURCES = [
-  {
-    month: "2026-01",
-    monthLabel: "January 2026",
-    label: "January 2026",
-    url: januaryNewAdsUrl
-  },
-  {
-    month: "2026-02",
-    monthLabel: "February 2026",
-    label: "February 2026",
-    url: februaryNewAdsUrl
-  },
-  {
-    month: "2026-03",
-    monthLabel: "March 2026",
-    label: "March 2026",
-    url: marchNewAdsUrl
-  },
-  {
-    month: "2026-04",
-    monthLabel: "April 2026",
-    label: "April 2026",
-    url: aprilNewAdsUrl
-  },
-  {
-    month: "2026-05",
-    monthLabel: "May 2026",
-    label: "May 2026",
-    url: mayNewAdsUrl
-  }
-];
-
-function getInitialLanguage() {
-  try {
-    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    return INVENTORY_SOURCES[savedLanguage] ? savedLanguage : "en";
-  } catch {
-    return "en";
-  }
-}
-
 const state = {
   ads: [],
   selectedAds: [],
   metadataColumns: [],
   metricNames: [],
   installPrompt: null,
-  inventoryLanguage: getInitialLanguage(),
+  inventoryLanguage: "en",
   inventoryRequestId: 0
 };
 
@@ -143,16 +94,6 @@ app.innerHTML = `
         data-tab="new-ads"
       >
         New Ads
-      </button>
-      <button
-        class="app-tab"
-        type="button"
-        role="tab"
-        aria-selected="false"
-        aria-controls="ad-text-panel"
-        data-tab="ad-text"
-      >
-        Ad Text
       </button>
     </nav>
 
@@ -310,18 +251,11 @@ app.innerHTML = `
         data-tab-panel="new-ads"
         hidden
       ></section>
-      <section
-        class="ad-text-page"
-        id="ad-text-panel"
-        role="tabpanel"
-        data-tab-panel="ad-text"
-        hidden
-      ></section>
     </main>
 
     <footer>
-      <span>Toppy · Version 1.3.1 · By Caleb Day</span>
-      <span id="data-note">Preparing campaign data</span>
+      <span>Toppy · Version 2.1 · By Caleb Day</span>
+      <span id="data-note">No data is stored</span>
     </footer>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -359,12 +293,6 @@ const elements = {
 
 const newAdsController = createNewAdsController({
   root: document.querySelector("#new-ads-panel"),
-  sources: NEW_AD_SOURCES,
-  copyText,
-  showToast
-});
-createAdTextController({
-  root: document.querySelector("#ad-text-panel"),
   copyText,
   showToast
 });
@@ -667,21 +595,12 @@ function updateLanguageToggle() {
   });
 }
 
-function saveLanguagePreference() {
-  try {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, state.inventoryLanguage);
-  } catch {
-    // The app still works when browser storage is unavailable.
-  }
-}
-
 async function setInventoryLanguage(language) {
   if (!INVENTORY_SOURCES[language] || language === state.inventoryLanguage) {
     return;
   }
 
   state.inventoryLanguage = language;
-  saveLanguagePreference();
   updateLanguageToggle();
   await loadInventory({ announce: true });
 }

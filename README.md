@@ -6,30 +6,14 @@ from the English and Spanish top-performer inventories in `Data/`.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
-Version 1.2 adds a **New Ads** tab that filters the monthly Missionary Content
-Initiative CSV files by language, month, rating, format, and status. Selected
-Google Drive links are paired with editable Campaign, Adset, and Ad names.
+Version 2.1 removes bundled New Video Data and the Ad Text generator. The
+**New Ads** tab now requires users to upload their own New Video Data CSV files
+before filtering, drawing, copying links, downloading Drive files, or generating
+editable Campaign, Adset, and Ad names.
 
-Version 1.3 adds an **Ad Text** tab that uses Google Gemini 3.5 Flash to create
-five editable Meta lead-generation campaign concepts. Users provide their own
-Google AI Studio API key for the current browser tab; Toppy does not store or
-bundle the key.
-
-Version 1.3.1 fixes Gemini structured-output requests and ensures downloaded
-New Ads use their Ad ID as the filename.
-
-## Ad Text setup
-
-1. Create a free Gemini API key in
-   [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Open the Ad Text tab and paste the key.
-3. Select an Ad Topic and Ad Blessing, then add optional notes or a public
-   source URL.
-
-The Gemini free tier may use submitted content to improve Google's products.
-Do not submit confidential or personal information. Use a separate key
-restricted to the Gemini API and rotate it if it is exposed; a static browser
-app cannot protect a key as securely as a backend proxy.
+Uploaded New Video Data is processed locally in the browser tab. No uploaded
+data is stored by Toppy, bundled into the app, or sent to a server by this app.
+Refreshing or closing the tab clears the uploaded rows.
 
 ## Run locally
 
@@ -46,8 +30,8 @@ npm run preview
 ```
 
 The production build is written to `dist/`. The generated service worker
-precaches the application and CSV so an installed app can continue working
-offline.
+precaches the application and top-performer CSVs so an installed app can
+continue working offline.
 
 ## GitHub Pages
 
@@ -62,7 +46,10 @@ The repository's Pages source must remain set to **GitHub Actions**.
 
 ## Updating campaign data
 
-Replace the language CSVs in `Data/` or the monthly creative CSVs in `New Ads/`,
-then rebuild the app. Ad IDs are kept as strings so long IDs do not lose
-precision. Top-performer rows sharing an ad ID are consolidated, and
-`Measure Names` / `Measure Values` rows are shown as performance metrics.
+Replace the language CSVs in `Data/`, then rebuild the app. Ad IDs are kept as
+strings so long IDs do not lose precision. Top-performer rows sharing an ad ID
+are consolidated, and `Measure Names` / `Measure Values` rows are shown as
+performance metrics.
+
+New Video Data is no longer committed to the repo. Users upload those CSVs from
+the New Ads tab when they need that workflow.

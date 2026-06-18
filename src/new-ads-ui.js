@@ -14,6 +14,21 @@ import {
   selectFilteredNewAds
 } from "./new-ads.js";
 
+const MONTHS = [
+  ["january", "01", "January"],
+  ["february", "02", "February"],
+  ["march", "03", "March"],
+  ["april", "04", "April"],
+  ["may", "05", "May"],
+  ["june", "06", "June"],
+  ["july", "07", "July"],
+  ["august", "08", "August"],
+  ["september", "09", "September"],
+  ["october", "10", "October"],
+  ["november", "11", "November"],
+  ["december", "12", "December"]
+];
+
 function createElement(tag, className, text) {
   const element = document.createElement(tag);
   if (className) {
@@ -67,12 +82,50 @@ function getFormValues(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-export function createNewAdsController({
-  root,
-  sources,
-  copyText,
-  showToast
-}) {
+function formatFileCount(count) {
+  return `${count.toLocaleString()} CSV file${count === 1 ? "" : "s"}`;
+}
+
+function getUploadSource(fileName, index) {
+  const baseName = fileName.replace(/\.[^.]+$/, "");
+  const isoMatch = /(?:^|[^0-9])((?:19|20)\d{2})[-_ ]?(0[1-9]|1[0-2])(?:[^0-9]|$)/.exec(
+    baseName
+  );
+
+  if (isoMatch) {
+    const [, year, month] = isoMatch;
+    const match = MONTHS.find(([, value]) => value === month);
+    return {
+      month: `${year}-${month}`,
+      monthLabel: `${match?.[2] ?? month} ${year}`,
+      label: fileName
+    };
+  }
+
+  const monthPattern = MONTHS.map(([name]) => name).join("|");
+  const namedMonthMatch = new RegExp(
+    `\\b(${monthPattern})\\b\\s*[-_ ]?((?:19|20)\\d{2})`,
+    "i"
+  ).exec(baseName);
+
+  if (namedMonthMatch) {
+    const [, name, year] = namedMonthMatch;
+    const match = MONTHS.find(([value]) => value === name.toLowerCase());
+    return {
+      month: `${year}-${match[1]}`,
+      monthLabel: `${match[2]} ${year}`,
+      label: fileName
+    };
+  }
+
+  return {
+    month: `upload-${index + 1}`,
+    monthLabel: baseName || `Upload ${index + 1}`,
+    label: fileName
+  };
+}
+
+export function createNewAdsController({ root, copyText, showToast }) {
   const objectiveOptions = CAMPAIGN_OBJECTIVES.map(
     (objective) => `<option value="${objective}">${objective}</option>`
   ).join("");
@@ -80,23 +133,49 @@ export function createNewAdsController({
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 1.2 / New creative inventory</span>
-        <h1>Find and name<br><em>new ads.</em></h1>
+        <span class="eyebrow">Version 2.1 / New Video Data upload</span>
+        <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
-          Filter the monthly Missionary Content Initiative files, draw a random
-          set, and finish editable Campaign, Adset, and Ad names in one place.
+          Choose your own New Video Data CSV files, filter linked rows locally,
+          and finish editable Campaign, Adset, and Ad names in one place.
         </p>
       </div>
       <div class="new-ads-stat" id="new-ads-load-status" aria-live="polite">
-        Open this tab to load the New Ads inventory.
+        No built-in New Video Data is loaded.
       </div>
     </div>
+
+    <section class="new-ads-upload-panel" aria-labelledby="new-ads-upload-title">
+      <div class="panel-heading">
+        <div>
+          <span class="step-label">01 / Upload</span>
+          <h2 id="new-ads-upload-title">Upload New Video Data.</h2>
+        </div>
+        <div class="inventory-count" id="new-ads-upload-count">
+          No files selected
+        </div>
+      </div>
+      <label class="file-drop-zone" for="new-ads-file-input">
+        <span class="file-drop-title">Choose CSV files</span>
+        <span>Use one or more New Video Data exports from your computer.</span>
+        <input
+          id="new-ads-file-input"
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+        />
+      </label>
+      <p class="privacy-note">
+        No data is stored. Uploaded CSVs are processed in this browser tab only
+        and are cleared when you refresh or close the page.
+      </p>
+    </section>
 
     <div class="naming-stack">
       <section class="compact-name-card" aria-labelledby="new-campaign-title">
         <div class="compact-name-heading">
           <div>
-            <span class="step-label">01 / Campaign Name</span>
+            <span class="step-label">02 / Campaign Name</span>
             <h2 id="new-campaign-title">Campaign Name</h2>
           </div>
           <button class="icon-copy-button" type="button" data-copy-output="new-campaign-output" aria-label="Copy campaign name">Copy</button>
@@ -132,7 +211,7 @@ export function createNewAdsController({
       <section class="compact-name-card" aria-labelledby="new-adset-title">
         <div class="compact-name-heading">
           <div>
-            <span class="step-label">02 / Adset Name</span>
+            <span class="step-label">03 / Adset Name</span>
             <h2 id="new-adset-title">Adset Name</h2>
           </div>
           <button class="icon-copy-button" type="button" data-copy-output="new-adset-output" aria-label="Copy adset name">Copy</button>
@@ -166,17 +245,17 @@ export function createNewAdsController({
     <section class="new-ads-filter-panel" aria-labelledby="new-ads-filter-title">
       <div class="panel-heading">
         <div>
-          <span class="step-label">03 / Filter and draw</span>
+          <span class="step-label">04 / Filter and draw</span>
           <h2 id="new-ads-filter-title">Choose the new ads.</h2>
         </div>
         <div class="inventory-count" id="new-ads-match-count">
-          Inventory not loaded
+          Upload CSVs first
         </div>
       </div>
       <form class="new-ads-filter-form" id="new-ads-filter-form">
         <label>
           <span>Number of ads</span>
-          <input name="count" type="number" min="1" value="5" inputmode="numeric" required />
+          <input name="count" type="number" min="1" max="1" value="5" inputmode="numeric" required />
         </label>
         <label>
           <span>Language</span>
@@ -187,7 +266,7 @@ export function createNewAdsController({
         <label>
           <span>Month</span>
           <select name="month">
-            <option value="">All months</option>
+            <option value="">All uploads</option>
           </select>
         </label>
         <label>
@@ -215,7 +294,6 @@ export function createNewAdsController({
         </label>
         <button class="button button-primary" type="submit" disabled>
           <span>Generate new ads</span>
-          <span aria-hidden="true">↗</span>
         </button>
       </form>
       <p class="form-message" id="new-ads-message" role="alert"></p>
@@ -224,7 +302,7 @@ export function createNewAdsController({
     <section class="new-ads-results" id="new-ads-results" aria-labelledby="new-ads-results-title">
       <div class="results-toolbar">
         <div>
-          <span class="step-label">04 / Links and Ad Names</span>
+          <span class="step-label">05 / Links and Ad Names</span>
           <h2 id="new-ads-results-title">New Ads results</h2>
         </div>
         <div class="result-actions">
@@ -237,7 +315,7 @@ export function createNewAdsController({
         <span class="empty-number">00</span>
         <div>
           <h3>Your new ads will appear here.</h3>
-          <p>Choose filters and a count to draw from the monthly files.</p>
+          <p>Upload New Video Data CSVs, then choose filters and a count.</p>
         </div>
       </div>
       <div class="new-ad-list" id="new-ad-list"></div>
@@ -246,12 +324,13 @@ export function createNewAdsController({
 
   const state = {
     ads: [],
-    selectedAds: [],
-    loadPromise: null
+    selectedAds: []
   };
 
   const elements = {
     loadStatus: root.querySelector("#new-ads-load-status"),
+    uploadInput: root.querySelector("#new-ads-file-input"),
+    uploadCount: root.querySelector("#new-ads-upload-count"),
     campaignForm: root.querySelector("#new-campaign-form"),
     campaignOutput: root.querySelector("#new-campaign-output"),
     adsetForm: root.querySelector("#new-adset-form"),
@@ -294,13 +373,26 @@ export function createNewAdsController({
     };
   }
 
+  function resetDynamicFilters() {
+    elements.filterForm.reset();
+    for (const name of ["language", "month", "format", "status"]) {
+      const select = elements.filterForm.elements[name];
+      select.options.length = 1;
+    }
+    elements.filterForm.elements.count.value = "5";
+    elements.filterForm.elements.count.max = "1";
+  }
+
   function updateMatchCount() {
+    const countInput = elements.filterForm.elements.count;
     if (state.ads.length === 0) {
+      countInput.max = "1";
+      elements.matchCount.textContent = "Upload CSVs first";
+      elements.generate.disabled = true;
       return;
     }
 
     const matches = filterNewAds(state.ads, getFilters());
-    const countInput = elements.filterForm.elements.count;
     countInput.max = String(Math.max(1, matches.length));
     elements.matchCount.textContent = `${matches.length.toLocaleString()} matching ads`;
     elements.generate.disabled = matches.length === 0;
@@ -328,7 +420,7 @@ export function createNewAdsController({
     }
 
     const actions = createElement("div", "campaign-actions");
-    const openLink = createElement("a", "text-link", "Open Drive ↗");
+    const openLink = createElement("a", "text-link", "Open Drive");
     openLink.href = ad.videoUrl;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
@@ -449,6 +541,7 @@ export function createNewAdsController({
   }
 
   function populateFilters() {
+    resetDynamicFilters();
     const options = getNewAdFilterOptions(state.ads);
     appendOptions(
       elements.filterForm.elements.language,
@@ -465,40 +558,72 @@ export function createNewAdsController({
     );
   }
 
-  async function load() {
-    if (state.loadPromise) {
-      return state.loadPromise;
-    }
-
-    elements.loadStatus.textContent = "Loading five monthly New Ads files...";
-    state.loadPromise = Promise.all(
-      sources.map(async (source) => {
-        const response = await fetch(source.url);
-        if (!response.ok) {
-          throw new Error(`${source.label} failed with ${response.status}`);
-        }
-        return parseNewAdsCsv(await response.text(), source);
-      })
-    )
-      .then((monthlyAds) => {
-        state.ads = monthlyAds.flat();
-        populateFilters();
-        updateMatchCount();
-        elements.loadStatus.textContent = `${state.ads.length.toLocaleString()} linked ads across January–May 2026`;
-        elements.generate.disabled = false;
-      })
-      .catch((error) => {
-        console.error(error);
-        elements.loadStatus.textContent = "New Ads inventory unavailable";
-        elements.matchCount.textContent = "Could not load inventory";
-        elements.message.textContent =
-          "The New Ads files could not be loaded. Refresh the page to try again.";
-        state.loadPromise = null;
-      });
-
-    return state.loadPromise;
+  function clearUploadedData() {
+    state.ads = [];
+    state.selectedAds = [];
+    resetDynamicFilters();
+    renderResults();
+    elements.loadStatus.textContent = "No built-in New Video Data is loaded.";
+    elements.uploadCount.textContent = "No files selected";
+    elements.matchCount.textContent = "Upload CSVs first";
+    elements.message.textContent = "";
+    elements.generate.disabled = true;
   }
 
+  async function loadUploadedFiles(files) {
+    if (files.length === 0) {
+      clearUploadedData();
+      return;
+    }
+
+    state.ads = [];
+    state.selectedAds = [];
+    resetDynamicFilters();
+    renderResults();
+    elements.message.textContent = "";
+    elements.generate.disabled = true;
+    elements.uploadCount.textContent = `${formatFileCount(files.length)} selected`;
+    elements.loadStatus.textContent = `Reading ${formatFileCount(files.length)} locally...`;
+    elements.matchCount.textContent = "Reading uploads";
+
+    try {
+      const uploadedAds = await Promise.all(
+        files.map(async (file, index) =>
+          parseNewAdsCsv(await file.text(), getUploadSource(file.name, index))
+        )
+      );
+      state.ads = uploadedAds.flat();
+
+      if (state.ads.length === 0) {
+        throw new Error(
+          "No downloadable Drive file links were found in the uploaded CSVs."
+        );
+      }
+
+      populateFilters();
+      updateMatchCount();
+      elements.uploadCount.textContent = `${formatFileCount(files.length)} loaded`;
+      elements.loadStatus.textContent = `${state.ads.length.toLocaleString()} linked ads loaded from your CSVs`;
+      showToast(`${state.ads.length.toLocaleString()} New Video Data rows loaded`);
+    } catch (error) {
+      console.error(error);
+      state.ads = [];
+      state.selectedAds = [];
+      resetDynamicFilters();
+      renderResults();
+      elements.loadStatus.textContent = "Upload failed";
+      elements.matchCount.textContent = "Upload CSVs first";
+      elements.generate.disabled = true;
+      elements.message.textContent =
+        error instanceof Error
+          ? error.message
+          : "The selected CSV files could not be read.";
+    }
+  }
+
+  elements.uploadInput.addEventListener("change", () => {
+    loadUploadedFiles([...elements.uploadInput.files]);
+  });
   elements.campaignForm.addEventListener("input", updateCampaignOutput);
   elements.campaignForm.addEventListener("change", updateCampaignOutput);
   elements.adsetForm.addEventListener("input", updateAdsetOutput);
@@ -510,6 +635,10 @@ export function createNewAdsController({
     const count = Number(elements.filterForm.elements.count.value);
     const matchingAds = filterNewAds(state.ads, getFilters());
 
+    if (state.ads.length === 0) {
+      elements.message.textContent = "Upload New Video Data CSVs first.";
+      return;
+    }
     if (!Number.isInteger(count) || count < 1) {
       elements.message.textContent = "Enter a whole number of at least 1.";
       return;
@@ -558,6 +687,11 @@ export function createNewAdsController({
 
   updateCampaignOutput();
   updateAdsetOutput();
+  clearUploadedData();
 
-  return { load };
+  return {
+    load() {
+      return Promise.resolve();
+    }
+  };
 }

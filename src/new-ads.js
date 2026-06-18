@@ -63,7 +63,7 @@ export function parseNewAdsCsv(
     const ratingText = clean(record.Rating);
     const ratingValue = Number(ratingText);
     const language = clean(
-      record["Language🌍💬"] ?? record["Language🌍💬 "]
+      record.Language ?? record["Language🌍💬"] ?? record["Language🌍💬 "]
     );
     const image = isTrue(record["Image?"]);
 
