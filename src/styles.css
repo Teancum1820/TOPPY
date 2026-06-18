@@ -64,6 +64,18 @@ a {
   margin: 0 auto;
 }
 
+.affiliation-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  color: #fff;
+  background: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .site-header {
   display: flex;
   align-items: center;
@@ -265,6 +277,17 @@ a {
   color: #535d57;
   font-size: clamp(1rem, 1.4vw, 1.22rem);
   line-height: 1.65;
+}
+
+.data-disclaimer {
+  max-width: 620px;
+  margin: 16px 0 0;
+  padding-left: 16px;
+  color: #4a554f;
+  border-left: 4px solid var(--orange);
+  font-size: 0.95rem;
+  font-weight: 750;
+  line-height: 1.55;
 }
 
 .hero-mascot {
@@ -500,10 +523,47 @@ a {
 
 .generator-form {
   display: grid;
-  grid-template-columns: minmax(260px, 0.65fr) minmax(220px, 0.8fr) minmax(260px, 1fr);
+  grid-template-columns:
+    minmax(260px, 1fr)
+    minmax(220px, 0.62fr)
+    minmax(220px, 0.7fr)
+    minmax(240px, 0.72fr);
   gap: 22px;
   align-items: stretch;
   margin-top: 42px;
+}
+
+.csv-upload-control {
+  display: grid;
+  gap: 10px;
+  min-height: 78px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.csv-upload-control span {
+  color: #adb7b0;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.csv-upload-control input {
+  width: 100%;
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+.csv-upload-control input::file-selector-button {
+  min-height: 34px;
+  margin-right: 12px;
+  padding: 0 12px;
+  border: 0;
+  color: var(--ink);
+  background: var(--sage);
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
 .number-control {
@@ -639,6 +699,14 @@ a {
   margin: 16px 0 0;
   color: #ffaf91;
   font-size: 0.85rem;
+}
+
+.upload-note {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: #d4ddd7;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .results-section {

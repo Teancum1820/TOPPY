@@ -1,6 +1,9 @@
 import { registerSW } from "virtual:pwa-register";
-import englishCsvUrl from "../Data/English/English Data 6-12-2026.csv?url";
-import spanishCsvUrl from "../Data/Spanish/Spanish Data 6-12-2026.csv?url";
+import januaryNewAdsUrl from "../New Ads/Missionary Content Initiative - January 2026.csv?url";
+import februaryNewAdsUrl from "../New Ads/Missionary Content Initiative - February 2026.csv?url";
+import marchNewAdsUrl from "../New Ads/Missionary Content Initiative - March 2026.csv?url";
+import aprilNewAdsUrl from "../New Ads/Missionary Content Initiative - April 2026.csv?url";
+import mayNewAdsUrl from "../New Ads/Missionary Content Initiative - May 2026.csv?url";
 import toppyUrl from "../images/Toppy Transparent.png?url";
 import {
   buildCampaignName,
@@ -11,24 +14,45 @@ import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
 
-const INVENTORY_SOURCES = {
-  en: {
-    label: "English",
-    url: englishCsvUrl
+const NEW_AD_SOURCES = [
+  {
+    month: "2026-01",
+    monthLabel: "January 2026",
+    label: "January 2026",
+    url: januaryNewAdsUrl
   },
-  es: {
-    label: "Spanish",
-    url: spanishCsvUrl
+  {
+    month: "2026-02",
+    monthLabel: "February 2026",
+    label: "February 2026",
+    url: februaryNewAdsUrl
+  },
+  {
+    month: "2026-03",
+    monthLabel: "March 2026",
+    label: "March 2026",
+    url: marchNewAdsUrl
+  },
+  {
+    month: "2026-04",
+    monthLabel: "April 2026",
+    label: "April 2026",
+    url: aprilNewAdsUrl
+  },
+  {
+    month: "2026-05",
+    monthLabel: "May 2026",
+    label: "May 2026",
+    url: mayNewAdsUrl
   }
-};
+];
+
 const state = {
   ads: [],
   selectedAds: [],
   metadataColumns: [],
   metricNames: [],
-  installPrompt: null,
-  inventoryLanguage: "en",
-  inventoryRequestId: 0
+  installPrompt: null
 };
 
 const app = document.querySelector("#app");
@@ -38,6 +62,9 @@ const objectiveOptions = CAMPAIGN_OBJECTIVES.map(
 
 app.innerHTML = `
   <div class="app-shell">
+    <div class="affiliation-banner" role="note">
+      Not affiliated with the FSC
+    </div>
     <header class="site-header">
       <a class="brand" href="./" aria-label="Toppy home">
         <span class="brand-mark" aria-hidden="true">
@@ -46,24 +73,6 @@ app.innerHTML = `
         <span>Toppy</span>
       </a>
       <div class="header-actions">
-        <div class="language-toggle" role="group" aria-label="Ad language" data-top-ads-control>
-          <button
-            class="language-option"
-            type="button"
-            data-language="en"
-            aria-pressed="${state.inventoryLanguage === "en"}"
-          >
-            English
-          </button>
-          <button
-            class="language-option"
-            type="button"
-            data-language="es"
-            aria-pressed="${state.inventoryLanguage === "es"}"
-          >
-            Spanish
-          </button>
-        </div>
         <span class="connection-status" id="connection-status">
           <span class="status-dot"></span>
           <span class="status-text">Online</span>
@@ -104,8 +113,12 @@ app.innerHTML = `
           <div class="eyebrow">Campaign utility / randomizer</div>
           <h1 id="page-title">Build your next<br><em>ad campaign.</em></h1>
           <p class="hero-copy">
-            Name the campaign, choose its size, and get a unique randomized set
-            from the current top-performer inventory.
+            Upload your own CSV data, choose a campaign size, and get a unique
+            randomized set of top performer ads from your file.
+          </p>
+          <p class="data-disclaimer">
+            Toppy does not provide ad data or campaign data. You must provide
+            your own CSV file before the randomizer can select ads.
           </p>
         </div>
         <div class="hero-mascot" aria-label="Toppy, the Top Performer mascot">
@@ -171,15 +184,19 @@ app.innerHTML = `
       <section class="generator-panel" aria-labelledby="generator-title">
         <div class="panel-heading">
           <div>
-            <span class="step-label">02 / Campaign size</span>
-            <h2 id="generator-title">How many ads?</h2>
+            <span class="step-label">02 / Upload CSV</span>
+            <h2 id="generator-title">Bring your data.</h2>
           </div>
           <div class="inventory-count" id="inventory-count" aria-live="polite">
-            Loading inventory...
+            No CSV loaded
           </div>
         </div>
 
         <form class="generator-form" id="generator-form">
+          <label class="csv-upload-control">
+            <span>CSV data file</span>
+            <input id="csv-upload" name="csv-upload" type="file" accept=".csv,text/csv" />
+          </label>
           <div class="number-control">
             <button class="number-button" id="decrease-count" type="button" aria-label="Decrease ad count">−</button>
             <label class="sr-only" for="ad-count">Number of ads</label>
@@ -196,6 +213,11 @@ app.innerHTML = `
             <span aria-hidden="true">↗</span>
           </button>
         </form>
+        <p class="upload-note">
+          No data is included with Toppy. Upload a CSV containing ad IDs and any
+          performance columns you want to review; the file is read in your
+          browser for this session.
+        </p>
         <p class="form-message" id="form-message" role="alert"></p>
       </section>
 
@@ -220,7 +242,7 @@ app.innerHTML = `
           <span class="empty-number">00</span>
           <div>
             <h3>Your campaign will appear here.</h3>
-            <p>Select a size above to draw ads from the inventory.</p>
+            <p>Upload your own top performer CSV, then choose how many ads to select.</p>
           </div>
         </div>
         <div class="result-summary" id="result-summary" hidden></div>
@@ -254,8 +276,9 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.1 · By Caleb Day</span>
-      <span id="data-note">No data is stored</span>
+      <span>Toppy · Version 2.0 · By Caleb Day</span>
+      <span id="data-note">No data provided; upload your own CSV.</span>
+      <span>Not affiliated with the FSC</span>
     </footer>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -270,6 +293,7 @@ const elements = {
   campaignNameOutput: document.querySelector("#campaign-name-output"),
   copyName: document.querySelector("#copy-name-button"),
   form: document.querySelector("#generator-form"),
+  csvUpload: document.querySelector("#csv-upload"),
   input: document.querySelector("#ad-count"),
   decrease: document.querySelector("#decrease-count"),
   increase: document.querySelector("#increase-count"),
@@ -285,8 +309,6 @@ const elements = {
   toast: document.querySelector("#toast"),
   connectionStatus: document.querySelector("#connection-status"),
   dataNote: document.querySelector("#data-note"),
-  languageButtons: document.querySelectorAll("[data-language]"),
-  languageToggle: document.querySelector("[data-top-ads-control]"),
   tabButtons: document.querySelectorAll("[data-tab]"),
   tabPanels: document.querySelectorAll("[data-tab-panel]")
 };
@@ -306,7 +328,6 @@ function setActiveTab(tabName) {
   elements.tabPanels.forEach((panel) => {
     panel.hidden = panel.dataset.tabPanel !== tabName;
   });
-  elements.languageToggle.hidden = tabName !== "top-ads";
 
   if (tabName === "new-ads") {
     newAdsController.load();
@@ -499,6 +520,13 @@ function setCount(value) {
 
 function generateCampaign({ scroll = true } = {}) {
   const requestedCount = Number(elements.input.value);
+  if (state.ads.length === 0) {
+    elements.formMessage.textContent =
+      "Upload your own CSV data file before generating a campaign.";
+    elements.csvUpload.focus();
+    return;
+  }
+
   if (!Number.isInteger(requestedCount) || requestedCount < 1) {
     elements.formMessage.textContent = "Enter a whole number of at least 1.";
     elements.input.focus();
@@ -588,28 +616,7 @@ function updateConnectionStatus() {
     : "Offline";
 }
 
-function updateLanguageToggle() {
-  elements.languageButtons.forEach((button) => {
-    const selected = button.dataset.language === state.inventoryLanguage;
-    button.setAttribute("aria-pressed", String(selected));
-  });
-}
-
-async function setInventoryLanguage(language) {
-  if (!INVENTORY_SOURCES[language] || language === state.inventoryLanguage) {
-    return;
-  }
-
-  state.inventoryLanguage = language;
-  updateLanguageToggle();
-  await loadInventory({ announce: true });
-}
-
-async function loadInventory({ announce = false } = {}) {
-  const language = state.inventoryLanguage;
-  const source = INVENTORY_SOURCES[language];
-  const requestId = ++state.inventoryRequestId;
-
+function resetUploadedData(message = "Upload your own CSV to begin.") {
   state.ads = [];
   state.selectedAds = [];
   state.metadataColumns = [];
@@ -617,53 +624,46 @@ async function loadInventory({ announce = false } = {}) {
   renderResults();
   elements.input.max = "1";
   elements.generate.disabled = true;
-  elements.formMessage.textContent = "";
-  elements.inventoryCount.textContent = `Loading ${source.label.toLowerCase()} inventory...`;
-  elements.dataNote.textContent = `Preparing ${source.label.toLowerCase()} campaign data`;
+  elements.formMessage.textContent = message;
+  elements.inventoryCount.textContent = "No CSV loaded";
+  elements.dataNote.textContent = "No data provided; upload your own CSV.";
+}
+
+async function handleCsvUpload() {
+  const file = elements.csvUpload.files?.[0];
+  if (!file) {
+    resetUploadedData();
+    return;
+  }
+
+  resetUploadedData("Reading CSV...");
+  elements.inventoryCount.textContent = "Reading CSV";
 
   try {
-    const response = await fetch(source.url);
-    if (!response.ok) {
-      throw new Error(`Data request failed with ${response.status}`);
-    }
-
-    const parsed = parseCsv(await response.text());
+    const parsed = parseCsv(await file.text());
     const inventory = consolidateAds(parsed);
 
-    if (
-      requestId !== state.inventoryRequestId ||
-      language !== state.inventoryLanguage
-    ) {
-      return;
+    if (inventory.ads.length === 0) {
+      throw new Error("No usable ad IDs were found in the CSV.");
     }
 
     state.ads = inventory.ads;
     state.metadataColumns = inventory.metadataColumns;
     state.metricNames = inventory.metricNames;
-
-    if (state.ads.length === 0) {
-      throw new Error("No valid ad IDs were found in the CSV.");
-    }
-
+    state.selectedAds = [];
+    renderResults();
     elements.input.max = String(state.ads.length);
     elements.generate.disabled = false;
-    elements.inventoryCount.textContent = `${state.ads.length} ${source.label.toLowerCase()} ads available`;
-    elements.dataNote.textContent = `${source.label} inventory · ${state.ads.length} ads · ${state.metricNames.length} metrics each`;
+    elements.formMessage.textContent = "";
+    elements.inventoryCount.textContent = `${state.ads.length} ads loaded`;
+    elements.dataNote.textContent = `User-provided CSV: ${file.name} · ${state.ads.length} ads · ${state.metricNames.length} metrics`;
     setCount(Math.min(10, state.ads.length));
-
-    if (announce) {
-      showToast(`${source.label} inventory loaded`);
-    }
+    showToast("CSV loaded");
   } catch (error) {
-    if (requestId !== state.inventoryRequestId) {
-      return;
-    }
-
     console.error(error);
-    elements.inventoryCount.textContent = `${source.label} inventory unavailable`;
-    elements.formMessage.textContent =
-      "The campaign data could not be loaded. Refresh the page to try again.";
-    elements.dataNote.textContent = `${source.label} campaign data unavailable`;
+    resetUploadedData(
+      "Upload a CSV with an ad ID column, such as Ad ID, Level 1, or ID."
+    );
   }
 }
 
@@ -679,13 +679,9 @@ elements.increase.addEventListener("click", () => setCount(Number(elements.input
 elements.input.addEventListener("input", () => setCount(elements.input.value));
 elements.copy.addEventListener("click", copyIds);
 elements.redraw.addEventListener("click", () => generateCampaign({ scroll: false }));
+elements.csvUpload.addEventListener("change", handleCsvUpload);
 document.querySelectorAll("[data-count]").forEach((button) => {
   button.addEventListener("click", () => setCount(button.dataset.count));
-});
-elements.languageButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setInventoryLanguage(button.dataset.language);
-  });
 });
 elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -722,4 +718,4 @@ registerSW({
 updateConnectionStatus();
 elements.campaignStartDate.value = getLocalDateInputValue();
 updateCampaignName();
-loadInventory();
+resetUploadedData();
