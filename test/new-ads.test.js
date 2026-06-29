@@ -209,6 +209,7 @@ test("downloadNewAdFile creates a local download named with the Ad ID", async ()
 
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(result.filename, "Mar26-00042.mp4");
+  assert.equal(result.openedInNewTab, false);
   assert.equal(appended.length, 1);
   assert.deepEqual(clicks, [
     {
@@ -225,8 +226,15 @@ test("downloadNewAdFile falls back to a direct Drive download when fetch is bloc
     hidden: false,
     href: "",
     download: "",
+    target: "",
+    rel: "",
     click() {
-      clicks.push({ href: this.href, download: this.download });
+      clicks.push({
+        href: this.href,
+        download: this.download,
+        target: this.target,
+        rel: this.rel
+      });
     },
     remove() {}
   };
@@ -246,11 +254,64 @@ test("downloadNewAdFile falls back to a direct Drive download when fetch is bloc
   });
 
   assert.equal(result.filename, "Mar26-00042.mp4");
+  assert.equal(result.openedInNewTab, true);
   assert.deepEqual(clicks, [
     {
       href:
         "https://drive.usercontent.google.com/download?id=abc123&export=download&confirm=t",
-      download: "Mar26-00042.mp4"
+      download: "Mar26-00042.mp4",
+      target: "_blank",
+      rel: "noopener noreferrer"
+    }
+  ]);
+});
+
+test("downloadNewAdFile can open the Drive download in a new tab", async () => {
+  const clicks = [];
+  const anchor = {
+    hidden: false,
+    href: "",
+    download: "",
+    target: "",
+    rel: "",
+    click() {
+      clicks.push({
+        href: this.href,
+        download: this.download,
+        target: this.target,
+        rel: this.rel
+      });
+    },
+    remove() {}
+  };
+  let fetchCalled = false;
+
+  const result = await downloadNewAdFile({
+    url: "https://drive.google.com/file/d/abc123/view",
+    adId: "Mar26-00042",
+    openInNewTab: true,
+    fetchImpl: async () => {
+      fetchCalled = true;
+      throw new Error("fetch should not run");
+    },
+    documentRef: {
+      createElement: () => anchor,
+      body: {
+        append() {}
+      }
+    }
+  });
+
+  assert.equal(fetchCalled, false);
+  assert.equal(result.filename, "Mar26-00042.mp4");
+  assert.equal(result.openedInNewTab, true);
+  assert.deepEqual(clicks, [
+    {
+      href:
+        "https://drive.usercontent.google.com/download?id=abc123&export=download&confirm=t",
+      download: "Mar26-00042.mp4",
+      target: "_blank",
+      rel: "noopener noreferrer"
     }
   ]);
 });

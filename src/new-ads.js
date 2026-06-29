@@ -211,10 +211,14 @@ export function getAdDownloadFilename({
   return `${safeId}.${extension}`;
 }
 
-function clickDownloadLink({ href, filename, documentRef }) {
+function clickDownloadLink({ href, filename, documentRef, target = "" }) {
   const anchor = documentRef.createElement("a");
   anchor.href = href;
   anchor.download = filename;
+  if (target) {
+    anchor.target = target;
+    anchor.rel = "noopener noreferrer";
+  }
   anchor.hidden = true;
   documentRef.body.append(anchor);
   anchor.click();
@@ -225,6 +229,7 @@ export async function downloadNewAdFile({
   url,
   adId,
   format = "Video",
+  openInNewTab = false,
   fetchImpl = fetch,
   documentRef = globalThis.document,
   urlApi = globalThis.URL,
@@ -235,6 +240,23 @@ export async function downloadNewAdFile({
     throw new Error("This Drive link does not point to a downloadable file.");
   }
 
+  if (openInNewTab) {
+    const filename = getAdDownloadFilename({ adId, format });
+    clickDownloadLink({
+      href: downloadUrl,
+      filename,
+      documentRef,
+      target: "_blank"
+    });
+
+    return {
+      filename,
+      size: null,
+      type: "",
+      openedInNewTab: true
+    };
+  }
+
   let response;
   try {
     response = await fetchImpl(downloadUrl);
@@ -243,13 +265,15 @@ export async function downloadNewAdFile({
     clickDownloadLink({
       href: downloadUrl,
       filename,
-      documentRef
+      documentRef,
+      target: "_blank"
     });
 
     return {
       filename,
       size: null,
-      type: ""
+      type: "",
+      openedInNewTab: true
     };
   }
 
@@ -278,6 +302,7 @@ export async function downloadNewAdFile({
   return {
     filename,
     size: blob.size,
-    type: blob.type
+    type: blob.type,
+    openedInNewTab: false
   };
 }
