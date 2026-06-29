@@ -133,7 +133,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.2 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.2.1 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -459,7 +459,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
         await download;
         showToast(
           copiedToClipboard
-            ? `${ad.id} copied; download opened in a new tab`
+            ? `Creative ID ${ad.id} copied; download opened in a new tab`
             : "Download opened in a new tab"
         );
       } catch (error) {
