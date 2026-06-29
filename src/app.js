@@ -238,10 +238,36 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.2.1 · By Caleb Day</span>
+      <span>Toppy · Version 2.3 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
+  </div>
+  <div
+    class="approval-modal-backdrop"
+    id="top-ads-approval-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="top-ads-approval-title"
+    aria-describedby="top-ads-approval-copy"
+    hidden
+  >
+    <div class="approval-modal">
+      <span class="step-label">Still image approval</span>
+      <h2 id="top-ads-approval-title">Before using Top Ads</h2>
+      <p id="top-ads-approval-copy">
+        Make sure all Still Images are approved by Eden or Jacob before using
+        them in a campaign.
+      </p>
+      <div class="approval-actions">
+        <button class="button button-primary" id="top-ads-understand" type="button">
+          I understand
+        </button>
+        <button class="button button-secondary" id="top-ads-refuse" type="button">
+          I refuse
+        </button>
+      </div>
+    </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 `;
@@ -269,6 +295,9 @@ const elements = {
   redraw: document.querySelector("#redraw-button"),
   install: document.querySelector("#install-button"),
   toast: document.querySelector("#toast"),
+  topAdsApprovalModal: document.querySelector("#top-ads-approval-modal"),
+  topAdsUnderstand: document.querySelector("#top-ads-understand"),
+  topAdsRefuse: document.querySelector("#top-ads-refuse"),
   connectionStatus: document.querySelector("#connection-status"),
   dataNote: document.querySelector("#data-note"),
   tabButtons: document.querySelectorAll("[data-tab]"),
@@ -294,6 +323,29 @@ function setActiveTab(tabName) {
   if (tabName === "new-ads") {
     newAdsController.load();
   }
+  if (tabName === "top-ads") {
+    showTopAdsApproval();
+  }
+}
+
+function showTopAdsApproval() {
+  elements.topAdsApprovalModal.hidden = false;
+  document.body.classList.add("modal-open");
+  elements.topAdsUnderstand.focus();
+}
+
+function hideTopAdsApproval() {
+  elements.topAdsApprovalModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+function closeToppyTab() {
+  window.close();
+  setTimeout(() => {
+    if (!window.closed) {
+      window.location.replace("about:blank");
+    }
+  }, 100);
 }
 
 function findField(ad, pattern) {
@@ -642,6 +694,8 @@ elements.input.addEventListener("input", () => setCount(elements.input.value));
 elements.copy.addEventListener("click", copyIds);
 elements.redraw.addEventListener("click", () => generateCampaign({ scroll: false }));
 elements.csvUpload.addEventListener("change", handleCsvUpload);
+elements.topAdsUnderstand.addEventListener("click", hideTopAdsApproval);
+elements.topAdsRefuse.addEventListener("click", closeToppyTab);
 document.querySelectorAll("[data-count]").forEach((button) => {
   button.addEventListener("click", () => setCount(button.dataset.count));
 });
@@ -681,3 +735,4 @@ updateConnectionStatus();
 elements.campaignStartDate.value = getLocalDateInputValue();
 updateCampaignName();
 resetUploadedData();
+showTopAdsApproval();

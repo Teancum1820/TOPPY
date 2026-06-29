@@ -40,6 +40,10 @@ body {
   background-size: 32px 32px;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 button,
 input,
 select {
@@ -1308,6 +1312,50 @@ footer {
   opacity: 1;
 }
 
+.approval-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 28, 24, 0.64);
+}
+
+.approval-modal {
+  width: min(100%, 520px);
+  padding: clamp(26px, 5vw, 42px);
+  border: 1px solid var(--line);
+  border-top: 6px solid var(--orange);
+  background: #fffef8;
+  box-shadow: 0 24px 70px rgba(17, 28, 24, 0.3);
+}
+
+.approval-modal h2 {
+  margin: 10px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.approval-modal p {
+  margin: 0;
+  color: #4a554f;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.approval-actions .button {
+  flex: 1;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1524,6 +1572,10 @@ footer {
 
   .result-actions {
     width: 100%;
+  }
+
+  .approval-actions {
+    flex-direction: column;
   }
 
   .result-actions .button {

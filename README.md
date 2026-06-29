@@ -10,10 +10,9 @@ their own CSV data in the browser.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
-Version 2.2.1 keeps New Video Data upload-only and adds safer Drive downloads.
-The download action copies the Creative ID to the clipboard, then opens Drive in
-a new browser tab so users can preserve the intended filename even when Drive
-chooses its own. The
+Version 2.3 adds a Top Ads still-image approval warning. Every time the
+**Top Ads** tab opens, users must acknowledge that all Still Images need Eden
+or Jacob approval before continuing; refusing closes the Toppy tab. The
 **New Ads** tab requires users to upload their own New Video Data CSV files
 before filtering, drawing, copying links, downloading Drive files, or generating
 editable Campaign, Adset, and Ad names.
