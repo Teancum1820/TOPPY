@@ -133,7 +133,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.1 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.2 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -412,7 +412,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
         "campaign-position",
         String(index + 1).padStart(2, "0")
       ),
-      createElement("span", "field-label", "Ad ID"),
+      createElement("span", "field-label", "Creative ID"),
       createElement("h3", "", ad.id)
     );
     if (ad.generatedId) {
@@ -424,24 +424,44 @@ export function createNewAdsController({ root, copyText, showToast }) {
     openLink.href = ad.videoUrl;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
+    const copyIdButton = createElement(
+      "button",
+      "text-link",
+      "Copy Creative ID"
+    );
+    copyIdButton.type = "button";
+    copyIdButton.addEventListener("click", async () => {
+      const copied = await copyText(ad.id);
+      if (copied) {
+        showToast(`${ad.id} copied`);
+      }
+    });
     const downloadButton = createElement(
       "button",
       "text-link download-link-button",
-      `Download as ${ad.id}`
+      "Download"
     );
     downloadButton.type = "button";
     downloadButton.addEventListener("click", async () => {
       const originalLabel = downloadButton.textContent;
       downloadButton.disabled = true;
-      downloadButton.textContent = "Preparing download...";
+      downloadButton.textContent = "Opening...";
 
       try {
-        const result = await downloadNewAdFile({
+        const copied = copyText(ad.id);
+        const download = downloadNewAdFile({
           url: ad.videoUrl,
           adId: ad.id,
-          format: ad.format
+          format: ad.format,
+          openInNewTab: true
         });
-        showToast(`${result.filename} downloaded`);
+        const copiedToClipboard = await copied;
+        await download;
+        showToast(
+          copiedToClipboard
+            ? `${ad.id} copied; download opened in a new tab`
+            : "Download opened in a new tab"
+        );
       } catch (error) {
         console.error(error);
         showToast(
@@ -454,7 +474,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
         downloadButton.textContent = originalLabel;
       }
     });
-    actions.append(openLink, downloadButton);
+    actions.append(openLink, copyIdButton, downloadButton);
     heading.append(identity, actions);
     card.append(heading);
 

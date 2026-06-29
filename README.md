@@ -10,7 +10,10 @@ their own CSV data in the browser.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
-Version 2.1 removes bundled New Video Data and the Ad Text generator. The
+Version 2.2 keeps New Video Data upload-only and adds safer Drive downloads.
+The download action opens Drive in a new browser tab and copies the Creative ID
+so users can preserve the intended filename even when Drive chooses its own.
+The
 **New Ads** tab requires users to upload their own New Video Data CSV files
 before filtering, drawing, copying links, downloading Drive files, or generating
 editable Campaign, Adset, and Ad names.
