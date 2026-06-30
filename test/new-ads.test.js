@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildWindowsRenameScript,
   createAdNameFields,
   downloadNewAdFile,
   downloadNewAdFiles,
+  downloadWindowsRenameScript,
   filterNewAds,
+  getAdRenameScriptFilename,
   generateToppyAdId,
   getAdDownloadFilename,
   getGoogleDriveDownloadUrl,
@@ -376,6 +379,73 @@ test("downloadNewAdFiles downloads selected ads as Creative ID filenames", async
     ["Mar26-00042.mp4", "Mar26-00043.jpg"]
   );
   assert.deepEqual(waits, [25]);
+});
+
+test("buildWindowsRenameScript maps selected ads to Creative IDs", () => {
+  const script = buildWindowsRenameScript([
+    {
+      id: "Mar26-00042",
+      format: "Video"
+    },
+    {
+      id: "TPY:bad/name",
+      format: "Image"
+    }
+  ]);
+
+  assert.match(script, /Toppy Windows rename script/);
+  assert.match(script, /\$CreativeIds = @\(/);
+  assert.match(script, /'Mar26-00042'/);
+  assert.match(script, /'TPY-bad-name'/);
+  assert.match(script, /Rename-Item -LiteralPath/);
+  assert.match(script, /Type YES to continue/);
+});
+
+test("downloadWindowsRenameScript creates a PowerShell script download", () => {
+  const clicks = [];
+  const appended = [];
+  const revoked = [];
+  const anchor = {
+    hidden: false,
+    href: "",
+    download: "",
+    click() {
+      clicks.push({ href: this.href, download: this.download });
+    },
+    remove() {}
+  };
+
+  const result = downloadWindowsRenameScript({
+    ads: [
+      {
+        id: "Mar26-00042",
+        format: "Video"
+      }
+    ],
+    documentRef: {
+      createElement: () => anchor,
+      body: {
+        append(element) {
+          appended.push(element);
+        }
+      }
+    },
+    urlApi: {
+      createObjectURL: () => "blob:toppy-rename-script",
+      revokeObjectURL: (url) => revoked.push(url)
+    },
+    revokeDelay: 0
+  });
+
+  assert.equal(result.filename, getAdRenameScriptFilename());
+  assert.equal(result.count, 1);
+  assert.equal(appended.length, 1);
+  assert.deepEqual(clicks, [
+    {
+      href: "blob:toppy-rename-script",
+      download: "toppy-rename-selected-ads.ps1"
+    }
+  ]);
 });
 
 test("uploaded CSV data supports filtering by language and rating", () => {

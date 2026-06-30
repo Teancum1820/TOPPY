@@ -212,6 +212,89 @@ export function getAdDownloadFilename({
   return `${safeId}.${extension}`;
 }
 
+function escapePowerShellString(value) {
+  return clean(value).replace(/'/g, "''");
+}
+
+export function getAdRenameScriptFilename() {
+  return "toppy-rename-selected-ads.ps1";
+}
+
+export function buildWindowsRenameScript(ads) {
+  const ids = ads.map((ad) => getAdDownloadFilename({ adId: ad.id, format: ad.format })
+    .replace(/\.[^.]+$/, ""));
+  const idLines = ids.map((id) => `  '${escapePowerShellString(id)}'`).join(",\r\n");
+
+  return [
+    "# Toppy Windows rename script",
+    "# 1. Download the selected ads into one folder.",
+    "# 2. Move this script into that same folder.",
+    "# 3. Right-click the script and choose Run with PowerShell.",
+    "# The script renames the newest matching media files in download order.",
+    "",
+    "param(",
+    "  [string]$Path = $PSScriptRoot",
+    ")",
+    "",
+    "$ErrorActionPreference = 'Stop'",
+    `$CreativeIds = @(\r\n${idLines}\r\n)`,
+    "$MediaExtensions = @('.mp4', '.mov', '.webm', '.jpg', '.jpeg', '.png', '.webp', '.gif')",
+    "",
+    "if ([string]::IsNullOrWhiteSpace($Path)) {",
+    "  $Path = (Get-Location).Path",
+    "}",
+    "",
+    "$Folder = Resolve-Path -LiteralPath $Path",
+    "$Files = @(",
+    "  Get-ChildItem -LiteralPath $Folder -File |",
+    "    Where-Object { $MediaExtensions -contains $_.Extension.ToLowerInvariant() } |",
+    "    Sort-Object LastWriteTime, Name |",
+    "    Select-Object -Last $CreativeIds.Count",
+    ")",
+    "",
+    "if ($Files.Count -lt $CreativeIds.Count) {",
+    "  Write-Host \"Found $($Files.Count) media files, but $($CreativeIds.Count) Creative IDs need files.\" -ForegroundColor Red",
+    "  Write-Host \"Download all selected ads into $Folder, then run this script again.\"",
+    "  exit 1",
+    "}",
+    "",
+    "Write-Host \"Toppy will rename these files:\" -ForegroundColor Cyan",
+    "for ($Index = 0; $Index -lt $CreativeIds.Count; $Index++) {",
+    "  $File = $Files[$Index]",
+    "  $NewName = \"$($CreativeIds[$Index])$($File.Extension.ToLowerInvariant())\"",
+    "  Write-Host \"  $($File.Name) -> $NewName\"",
+    "}",
+    "",
+    "$Answer = Read-Host \"Rename these files? Type YES to continue\"",
+    "if ($Answer -ne 'YES') {",
+    "  Write-Host 'No files renamed.'",
+    "  exit 0",
+    "}",
+    "",
+    "for ($Index = 0; $Index -lt $CreativeIds.Count; $Index++) {",
+    "  $File = $Files[$Index]",
+    "  $BaseName = $CreativeIds[$Index]",
+    "  $Extension = $File.Extension.ToLowerInvariant()",
+    "  $NewName = \"$BaseName$Extension\"",
+    "  $TargetPath = Join-Path -Path $Folder -ChildPath $NewName",
+    "  $Suffix = 2",
+    "",
+    "  while ((Test-Path -LiteralPath $TargetPath) -and ($TargetPath -ne $File.FullName)) {",
+    "    $NewName = \"$BaseName-$Suffix$Extension\"",
+    "    $TargetPath = Join-Path -Path $Folder -ChildPath $NewName",
+    "    $Suffix++",
+    "  }",
+    "",
+    "  if ($File.FullName -ne $TargetPath) {",
+    "    Rename-Item -LiteralPath $File.FullName -NewName $NewName",
+    "  }",
+    "}",
+    "",
+    "Write-Host \"Renamed $($CreativeIds.Count) files.\" -ForegroundColor Green",
+    ""
+  ].join("\r\n");
+}
+
 function clickDownloadLink({ href, filename, documentRef, target = "" }) {
   const anchor = documentRef.createElement("a");
   anchor.href = href;
@@ -330,4 +413,29 @@ export async function downloadNewAdFiles({
     }
   }
   return results;
+}
+
+export function downloadWindowsRenameScript({
+  ads,
+  documentRef = globalThis.document,
+  urlApi = globalThis.URL,
+  revokeDelay = 1000
+}) {
+  const script = buildWindowsRenameScript(ads);
+  const blob = new Blob([script], {
+    type: "text/plain;charset=utf-8"
+  });
+  const objectUrl = urlApi.createObjectURL(blob);
+  const filename = getAdRenameScriptFilename();
+  clickDownloadLink({
+    href: objectUrl,
+    filename,
+    documentRef
+  });
+  setTimeout(() => urlApi.revokeObjectURL(objectUrl), revokeDelay);
+
+  return {
+    filename,
+    count: ads.length
+  };
 }
