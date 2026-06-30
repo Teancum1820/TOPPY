@@ -279,7 +279,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.4 · By Caleb Day</span>
+      <span>Toppy · Version 2.4.1 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -532,7 +532,7 @@ function updateCopyState() {
 
 function markReviewLinkOpened(ad) {
   getReview(ad).opened = true;
-  setTimeout(renderResults, 0);
+  setTimeout(renderResultsPreservingScroll, 0);
 }
 
 function rejectAd(ad) {
@@ -553,14 +553,14 @@ function rejectAd(ad) {
     showToast(`${ad.id} removed; no replacement ads remain`);
   }
 
-  renderResults();
+  renderResultsPreservingScroll();
 }
 
 function handleReviewChoice(ad, key, value, checked) {
   const review = getReview(ad);
   if (!review.opened) {
     showToast("Open the Ads Manager link first");
-    renderResults();
+    renderResultsPreservingScroll();
     return;
   }
 
@@ -568,7 +568,7 @@ function handleReviewChoice(ad, key, value, checked) {
     if (review.checks[key] === value) {
       review.checks[key] = "";
     }
-    renderResults();
+    renderResultsPreservingScroll();
     return;
   }
 
@@ -578,7 +578,7 @@ function handleReviewChoice(ad, key, value, checked) {
   }
 
   review.checks[key] = value;
-  renderResults();
+  renderResultsPreservingScroll();
 }
 
 function createReviewChoice(ad, key, value, disabled) {
@@ -754,6 +754,14 @@ function renderResults() {
     fragment.append(renderCampaignCard(ad, index));
   });
   elements.list.append(fragment);
+}
+
+function renderResultsPreservingScroll() {
+  const x = window.scrollX;
+  const y = window.scrollY;
+  renderResults();
+  window.scrollTo(x, y);
+  requestAnimationFrame(() => window.scrollTo(x, y));
 }
 
 function setCount(value) {
