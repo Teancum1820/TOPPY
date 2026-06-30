@@ -238,7 +238,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.3 · By Caleb Day</span>
+      <span>Toppy · Version 2.3.2 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>

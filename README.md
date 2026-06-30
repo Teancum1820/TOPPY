@@ -25,6 +25,10 @@ Version 2.3.1 defaults blank New Ads Script / Topic fields to the Mission name
 and adds a Download selected action for saving selected New Ads with Creative
 ID filenames.
 
+Version 2.3.2 adds a Windows-only rename script download for selected New Ads.
+Users can download the ads into one folder, save the generated PowerShell
+script there, and run it to rename the newest media files by Creative ID.
+
 ## Run locally
 
 ```sh
