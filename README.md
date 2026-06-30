@@ -21,6 +21,10 @@ Uploaded CSV data is processed locally in the browser tab. No uploaded data is
 stored by Toppy, bundled into the app, or sent to a server by this app.
 Refreshing or closing the tab clears the uploaded rows.
 
+Version 2.3.1 defaults blank New Ads Script / Topic fields to the Mission name
+and adds a Download selected action for saving selected New Ads with Creative
+ID filenames.
+
 ## Run locally
 
 ```sh

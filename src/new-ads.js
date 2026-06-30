@@ -133,6 +133,7 @@ export function getNewAdFilterOptions(ads) {
 
 export function createAdNameFields(ad, startDate) {
   const description = ad.topic || ad.mission || ad.id;
+  const topic = ad.topic || ad.mission;
   const subject = ad.missionaryNames || ad.mission || ad.country;
   const localized = ad.language
     ? ad.language.toLowerCase() === "english"
@@ -143,7 +144,7 @@ export function createAdNameFields(ad, startDate) {
   return {
     description,
     startDate,
-    topic: ad.topic,
+    topic,
     blessing: "",
     subject,
     format: ad.format,
@@ -305,4 +306,28 @@ export async function downloadNewAdFile({
     type: blob.type,
     openedInNewTab: false
   };
+}
+
+export async function downloadNewAdFiles({
+  ads,
+  downloadFile = downloadNewAdFile,
+  delayMs = 350,
+  wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+}) {
+  const results = [];
+  for (const ad of ads) {
+    const result = await downloadFile({
+      url: ad.videoUrl,
+      adId: ad.id,
+      format: ad.format
+    });
+    results.push({
+      adId: ad.id,
+      ...result
+    });
+    if (delayMs > 0 && results.length < ads.length) {
+      await wait(delayMs);
+    }
+  }
+  return results;
 }

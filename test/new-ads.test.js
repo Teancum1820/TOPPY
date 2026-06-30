@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createAdNameFields,
   downloadNewAdFile,
+  downloadNewAdFiles,
   filterNewAds,
   generateToppyAdId,
   getAdDownloadFilename,
@@ -129,6 +130,24 @@ test("createAdNameFields prefills editable naming details", () => {
       testingId: ""
     }
   );
+});
+
+test("createAdNameFields uses Mission when Script / Topic is blank", () => {
+  const fields = createAdNameFields(
+    {
+      id: "Mar26-101",
+      topic: "",
+      mission: "Denver",
+      missionaryNames: "",
+      country: "USA",
+      language: "English",
+      format: "Video"
+    },
+    "2026-06-12"
+  );
+
+  assert.equal(fields.description, "Denver");
+  assert.equal(fields.topic, "Denver");
 });
 
 test("ID and Drive helpers return usable values", () => {
@@ -314,6 +333,49 @@ test("downloadNewAdFile can open the Drive download in a new tab", async () => {
       rel: "noopener noreferrer"
     }
   ]);
+});
+
+test("downloadNewAdFiles downloads selected ads as Creative ID filenames", async () => {
+  const calls = [];
+  const waits = [];
+
+  const results = await downloadNewAdFiles({
+    ads: [
+      {
+        id: "Mar26-00042",
+        videoUrl: "https://drive.google.com/file/d/abc123/view",
+        format: "Video"
+      },
+      {
+        id: "Mar26-00043",
+        videoUrl: "https://drive.google.com/file/d/def456/view",
+        format: "Image"
+      }
+    ],
+    downloadFile: async (ad) => {
+      calls.push(ad);
+      return {
+        filename: `${ad.adId}.${ad.format === "Image" ? "jpg" : "mp4"}`,
+        size: 12,
+        type: ""
+      };
+    },
+    delayMs: 25,
+    wait: async (ms) => waits.push(ms)
+  });
+
+  assert.deepEqual(
+    calls.map((call) => [call.adId, call.url, call.format]),
+    [
+      ["Mar26-00042", "https://drive.google.com/file/d/abc123/view", "Video"],
+      ["Mar26-00043", "https://drive.google.com/file/d/def456/view", "Image"]
+    ]
+  );
+  assert.deepEqual(
+    results.map((result) => result.filename),
+    ["Mar26-00042.mp4", "Mar26-00043.jpg"]
+  );
+  assert.deepEqual(waits, [25]);
 });
 
 test("uploaded CSV data supports filtering by language and rating", () => {
