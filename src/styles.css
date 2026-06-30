@@ -713,6 +713,55 @@ a {
   line-height: 1.55;
 }
 
+.csv-example {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.csv-example .field-label {
+  color: #91a597;
+}
+
+.csv-example p {
+  max-width: 840px;
+  margin: 10px 0 0;
+  color: #d4ddd7;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.csv-example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.csv-example-grid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.csv-example-grid dt {
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.csv-example-grid dd {
+  margin: 7px 0 0;
+  color: #c3cec7;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .results-section {
   padding: clamp(78px, 9vw, 128px) 0;
   scroll-margin-top: 24px;

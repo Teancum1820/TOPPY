@@ -9,7 +9,6 @@ import {
   createAdNameFields,
   downloadNewAdFile,
   downloadNewAdFiles,
-  downloadWindowsRenameScript,
   filterNewAds,
   getNewAdFilterOptions,
   parseNewAdsCsv,
@@ -135,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.3.2 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.3.3 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -310,8 +309,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
         <div class="result-actions">
           <button class="button button-secondary" id="copy-new-ad-links" type="button" disabled>Copy links</button>
           <button class="button button-dark" id="copy-new-ad-names" type="button" disabled>Copy Ad Names</button>
-          <button class="button button-secondary" id="download-rename-script" type="button" disabled>Rename script</button>
-          <button class="button button-primary" id="download-new-ads" type="button" disabled>Download selected</button>
+          <button class="button button-primary" id="download-new-ads" type="button" disabled>Download all</button>
         </div>
       </div>
       <div class="generated-id-alert" id="generated-id-alert" hidden></div>
@@ -348,7 +346,6 @@ export function createNewAdsController({ root, copyText, showToast }) {
     generatedAlert: root.querySelector("#generated-id-alert"),
     copyLinks: root.querySelector("#copy-new-ad-links"),
     copyNames: root.querySelector("#copy-new-ad-names"),
-    renameScript: root.querySelector("#download-rename-script"),
     downloadSelected: root.querySelector("#download-new-ads")
   };
 
@@ -544,7 +541,6 @@ export function createNewAdsController({ root, copyText, showToast }) {
     elements.empty.hidden = hasResults;
     elements.copyLinks.disabled = !hasResults;
     elements.copyNames.disabled = !hasResults;
-    elements.renameScript.disabled = !hasResults;
     elements.downloadSelected.disabled = !hasResults;
 
     if (!hasResults) {
@@ -713,13 +709,6 @@ export function createNewAdsController({ root, copyText, showToast }) {
     showToast(`${names.length} Ad Names copied`);
   });
 
-  elements.renameScript.addEventListener("click", () => {
-    const result = downloadWindowsRenameScript({
-      ads: state.selectedAds
-    });
-    showToast(`${result.filename} created for ${result.count} selected ads`);
-  });
-
   elements.downloadSelected.addEventListener("click", async () => {
     const originalLabel = elements.downloadSelected.textContent;
     elements.downloadSelected.disabled = true;
@@ -729,13 +718,13 @@ export function createNewAdsController({ root, copyText, showToast }) {
       const results = await downloadNewAdFiles({
         ads: state.selectedAds
       });
-      showToast(`${results.length} selected ads downloaded`);
+      showToast(`${results.length} ads downloaded`);
     } catch (error) {
       console.error(error);
       showToast(
         error instanceof Error
           ? error.message
-          : "The selected ads could not be downloaded."
+          : "The ads could not be downloaded."
       );
     } finally {
       elements.downloadSelected.disabled = state.selectedAds.length === 0;

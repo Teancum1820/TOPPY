@@ -176,10 +176,44 @@ app.innerHTML = `
           </button>
         </form>
         <p class="upload-note">
-          No data is included with Toppy. Upload a CSV containing ad IDs and any
-          performance columns you want to review; the file is read in your
-          browser for this session.
+          No data is included with Toppy. Upload a CSV containing ad IDs,
+          metric rows, and any performance columns you want to review; the file
+          is read in your browser for this session.
         </p>
+        <div class="csv-example" aria-label="Top Ads CSV example">
+          <span class="field-label">Example CSV shape</span>
+          <p>
+            Top Ads works with exports like the test data: language in Level 1,
+            ad ID in Level 2, metric names and values in paired measure columns,
+            plus optional links and mission metadata.
+          </p>
+          <dl class="csv-example-grid">
+            <div>
+              <dt>Level 1</dt>
+              <dd>Language, such as English</dd>
+            </div>
+            <div>
+              <dt>Level 2</dt>
+              <dd>Ad ID from the export</dd>
+            </div>
+            <div>
+              <dt>Measure Names</dt>
+              <dd>Performance metric name</dd>
+            </div>
+            <div>
+              <dt>Measure Values</dt>
+              <dd>Metric value for that ad</dd>
+            </div>
+            <div>
+              <dt>Ad Mission</dt>
+              <dd>Mission or campaign context</dd>
+            </div>
+            <div>
+              <dt>Links</dt>
+              <dd>Ads Manager Link and Campaign Preview Link</dd>
+            </div>
+          </dl>
+        </div>
         <p class="form-message" id="form-message" role="alert"></p>
       </section>
 
@@ -238,7 +272,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.3.2 · By Caleb Day</span>
+      <span>Toppy · Version 2.3.3 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -438,7 +472,7 @@ function renderCampaignCard(ad, index) {
   top.append(actions);
   article.append(top);
 
-  const mission = findField(ad, /campaign mission/i);
+  const mission = findField(ad, /(?:campaign|ad) mission/i);
   if (mission) {
     const missionRow = createElement("div", "mission-row");
     missionRow.append(
@@ -451,7 +485,7 @@ function renderCampaignCard(ad, index) {
   const extraFields = Object.entries(ad.fields).filter(
     ([name, value]) =>
       value &&
-      !/campaign mission|ads manager link|campaign preview link|adjust ad/i.test(
+      !/(?:campaign|ad) mission|ads manager link|campaign preview link|adjust ad/i.test(
         name
       )
   );
@@ -676,7 +710,7 @@ async function handleCsvUpload() {
   } catch (error) {
     console.error(error);
     resetUploadedData(
-      "Upload a CSV with an ad ID column, such as Ad ID, Level 1, or ID."
+      "Upload a CSV with an ad ID column, such as Ad ID, Level 2, Level 1, or ID."
     );
   }
 }

@@ -1,5 +1,5 @@
 const COLUMN_ALIASES = {
-  id: ["ad id", "adid", "level 1", "id"],
+  id: ["ad id", "adid", "level 2", "id", "level 1"],
   measureName: ["measure names", "measure name", "metric names", "metric name"],
   measureValue: [
     "measure values",
@@ -14,11 +14,16 @@ function normalizeColumnName(value) {
 }
 
 function findColumn(headers, aliases, fallback = "") {
-  return (
-    headers.find((header) =>
-      aliases.includes(normalizeColumnName(header))
-    ) ?? fallback
-  );
+  for (const alias of aliases) {
+    const match = headers.find(
+      (header) => normalizeColumnName(header) === alias
+    );
+    if (match) {
+      return match;
+    }
+  }
+
+  return fallback;
 }
 
 export function parseCsv(text) {
