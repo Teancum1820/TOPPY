@@ -8,6 +8,7 @@ import {
 import {
   createAdNameFields,
   downloadNewAdFile,
+  downloadNewAdFiles,
   filterNewAds,
   getNewAdFilterOptions,
   parseNewAdsCsv,
@@ -133,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.3 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.3.1 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -308,6 +309,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
         <div class="result-actions">
           <button class="button button-secondary" id="copy-new-ad-links" type="button" disabled>Copy links</button>
           <button class="button button-dark" id="copy-new-ad-names" type="button" disabled>Copy Ad Names</button>
+          <button class="button button-primary" id="download-new-ads" type="button" disabled>Download selected</button>
         </div>
       </div>
       <div class="generated-id-alert" id="generated-id-alert" hidden></div>
@@ -343,7 +345,8 @@ export function createNewAdsController({ root, copyText, showToast }) {
     list: root.querySelector("#new-ad-list"),
     generatedAlert: root.querySelector("#generated-id-alert"),
     copyLinks: root.querySelector("#copy-new-ad-links"),
-    copyNames: root.querySelector("#copy-new-ad-names")
+    copyNames: root.querySelector("#copy-new-ad-names"),
+    downloadSelected: root.querySelector("#download-new-ads")
   };
 
   const today = getLocalDateInputValue();
@@ -538,6 +541,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
     elements.empty.hidden = hasResults;
     elements.copyLinks.disabled = !hasResults;
     elements.copyNames.disabled = !hasResults;
+    elements.downloadSelected.disabled = !hasResults;
 
     if (!hasResults) {
       elements.generatedAlert.hidden = true;
@@ -703,6 +707,29 @@ export function createNewAdsController({ root, copyText, showToast }) {
     );
     await copyText(names.join("\n"));
     showToast(`${names.length} Ad Names copied`);
+  });
+
+  elements.downloadSelected.addEventListener("click", async () => {
+    const originalLabel = elements.downloadSelected.textContent;
+    elements.downloadSelected.disabled = true;
+    elements.downloadSelected.textContent = "Downloading...";
+
+    try {
+      const results = await downloadNewAdFiles({
+        ads: state.selectedAds
+      });
+      showToast(`${results.length} selected ads downloaded`);
+    } catch (error) {
+      console.error(error);
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "The selected ads could not be downloaded."
+      );
+    } finally {
+      elements.downloadSelected.disabled = state.selectedAds.length === 0;
+      elements.downloadSelected.textContent = originalLabel;
+    }
   });
 
   updateCampaignOutput();
