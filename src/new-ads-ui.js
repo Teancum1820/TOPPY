@@ -134,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.3.3 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.4 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -326,7 +326,11 @@ export function createNewAdsController({ root, copyText, showToast }) {
 
   const state = {
     ads: [],
-    selectedAds: []
+    selectedAds: [],
+    requestedCount: 0,
+    activeFilters: {},
+    rejectedAdIds: new Set(),
+    reviewById: new Map()
   };
 
   const elements = {
@@ -376,6 +380,179 @@ export function createNewAdsController({ root, copyText, showToast }) {
     };
   }
 
+  const REVIEW_CHECK_KEYS = ["language", "video", "relevant"];
+
+  function createEmptyReview() {
+    return {
+      opened: false,
+      checks: {
+        language: "",
+        video: "",
+        relevant: ""
+      }
+    };
+  }
+
+  function getReview(ad) {
+    if (!state.reviewById.has(ad.id)) {
+      state.reviewById.set(ad.id, createEmptyReview());
+    }
+
+    return state.reviewById.get(ad.id);
+  }
+
+  function getReviewCheckLabel(ad, key) {
+    if (key === "language") {
+      return (ad.language || "Language").toUpperCase();
+    }
+    if (key === "video") {
+      return "Video";
+    }
+    return "Relevant";
+  }
+
+  function isReviewApproved(review) {
+    return (
+      review.opened &&
+      REVIEW_CHECK_KEYS.every((key) => review.checks[key] === "yes")
+    );
+  }
+
+  function getSelectedAdIds() {
+    return state.selectedAds.map((ad) => ad.id);
+  }
+
+  function getAvailableAds(filters = getFilters()) {
+    return filterNewAds(state.ads, filters).filter(
+      (ad) => !state.rejectedAdIds.has(ad.id)
+    );
+  }
+
+  function getReplacementAd() {
+    const excludedIds = new Set([
+      ...state.rejectedAdIds,
+      ...getSelectedAdIds()
+    ]);
+    return selectFilteredNewAds(state.ads, 1, state.activeFilters, {
+      excludeIds: excludedIds
+    })[0] ?? null;
+  }
+
+  function canDownloadSelectedAds() {
+    return (
+      state.selectedAds.length > 0 &&
+      state.selectedAds.length === state.requestedCount &&
+      state.selectedAds.every((ad) => isReviewApproved(getReview(ad)))
+    );
+  }
+
+  function updateDownloadState() {
+    elements.downloadSelected.disabled = !canDownloadSelectedAds();
+  }
+
+  function markReviewLinkOpened(ad) {
+    getReview(ad).opened = true;
+    setTimeout(renderResults, 0);
+  }
+
+  function rejectAd(ad) {
+    const index = state.selectedAds.findIndex((selectedAd) => selectedAd.id === ad.id);
+    if (index === -1) {
+      return;
+    }
+
+    state.rejectedAdIds.add(ad.id);
+    state.reviewById.delete(ad.id);
+    const replacement = getReplacementAd();
+
+    if (replacement) {
+      state.selectedAds.splice(index, 1, replacement);
+      showToast(`${ad.id} removed; replacement added`);
+    } else {
+      state.selectedAds.splice(index, 1);
+      showToast(`${ad.id} removed; no replacement ads remain`);
+    }
+
+    updateMatchCount();
+    renderResults();
+  }
+
+  function handleReviewChoice(ad, key, value, checked) {
+    const review = getReview(ad);
+    if (!review.opened) {
+      showToast("Open the Drive link first");
+      renderResults();
+      return;
+    }
+
+    if (!checked) {
+      if (review.checks[key] === value) {
+        review.checks[key] = "";
+      }
+      renderResults();
+      return;
+    }
+
+    if (value === "no") {
+      rejectAd(ad);
+      return;
+    }
+
+    review.checks[key] = value;
+    renderResults();
+  }
+
+  function createReviewChoice(ad, key, value, disabled) {
+    const review = getReview(ad);
+    const labelText = `${getReviewCheckLabel(ad, key)}: ${value === "yes" ? "Yes" : "No"}`;
+    const label = createElement("label", "review-choice");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = review.checks[key] === value;
+    input.disabled = disabled;
+    input.addEventListener("change", () => {
+      handleReviewChoice(ad, key, value, input.checked);
+    });
+    label.append(input, createElement("span", "", labelText));
+    return label;
+  }
+
+  function createAdReviewPanel(ad) {
+    const review = getReview(ad);
+    const approved = isReviewApproved(review);
+    const panel = createElement("div", "ad-review-panel");
+    panel.classList.toggle("approved", approved);
+
+    const heading = createElement("div", "ad-review-heading");
+    heading.append(
+      createElement("span", "field-label", "Review before download"),
+      createElement(
+        "span",
+        "ad-review-status",
+        approved
+          ? "Approved"
+          : review.opened
+            ? "Check every item"
+            : "Open Drive first"
+      )
+    );
+
+    const grid = createElement("div", "ad-review-grid");
+    const disabled = !review.opened;
+    for (const key of REVIEW_CHECK_KEYS) {
+      const row = createElement("div", "ad-review-row");
+      row.append(
+        createElement("span", "review-check-name", getReviewCheckLabel(ad, key)),
+        createReviewChoice(ad, key, "yes", disabled),
+        createReviewChoice(ad, key, "no", disabled)
+      );
+      grid.append(row);
+    }
+
+    panel.append(heading, grid);
+    return panel;
+  }
+
   function resetDynamicFilters() {
     elements.filterForm.reset();
     for (const name of ["language", "month", "format", "status"]) {
@@ -395,7 +572,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
       return;
     }
 
-    const matches = filterNewAds(state.ads, getFilters());
+    const matches = getAvailableAds(getFilters());
     countInput.max = String(Math.max(1, matches.length));
     elements.matchCount.textContent = `${matches.length.toLocaleString()} matching ads`;
     elements.generate.disabled = matches.length === 0;
@@ -427,6 +604,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
     openLink.href = ad.videoUrl;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
+    openLink.addEventListener("click", () => markReviewLinkOpened(ad));
     const copyIdButton = createElement(
       "button",
       "text-link",
@@ -445,7 +623,14 @@ export function createNewAdsController({ root, copyText, showToast }) {
       "Download"
     );
     downloadButton.type = "button";
+    downloadButton.disabled = !isReviewApproved(getReview(ad));
     downloadButton.addEventListener("click", async () => {
+      if (!isReviewApproved(getReview(ad))) {
+        showToast("Open the Drive link and approve every check first");
+        renderResults();
+        return;
+      }
+
       const originalLabel = downloadButton.textContent;
       downloadButton.disabled = true;
       downloadButton.textContent = "Opening...";
@@ -473,7 +658,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
             : "The Drive file could not be downloaded."
         );
       } finally {
-        downloadButton.disabled = false;
+        downloadButton.disabled = !isReviewApproved(getReview(ad));
         downloadButton.textContent = originalLabel;
       }
     });
@@ -493,6 +678,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
       meta.append(createElement("span", "", value));
     }
     card.append(meta);
+    card.append(createAdReviewPanel(ad));
 
     const fields = createAdNameFields(ad, today);
     const form = createElement("form", "ad-name-form");
@@ -541,7 +727,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
     elements.empty.hidden = hasResults;
     elements.copyLinks.disabled = !hasResults;
     elements.copyNames.disabled = !hasResults;
-    elements.downloadSelected.disabled = !hasResults;
+    updateDownloadState();
 
     if (!hasResults) {
       elements.generatedAlert.hidden = true;
@@ -551,11 +737,21 @@ export function createNewAdsController({ root, copyText, showToast }) {
     const generatedCount = state.selectedAds.filter(
       (ad) => ad.generatedId
     ).length;
-    elements.generatedAlert.hidden = generatedCount === 0;
-    elements.generatedAlert.textContent =
-      generatedCount === 1
-        ? "1 selected ad had no Creative ID. Toppy generated an Ad ID and marked it below."
-        : `${generatedCount} selected ads had no Creative ID. Toppy generated Ad IDs and marked them below.`;
+    const alertMessages = [];
+    if (state.selectedAds.length < state.requestedCount) {
+      alertMessages.push(
+        `${state.selectedAds.length} of ${state.requestedCount} ads selected; no unchecked replacements remain.`
+      );
+    }
+    if (generatedCount > 0) {
+      alertMessages.push(
+        generatedCount === 1
+          ? "1 selected ad had no Creative ID. Toppy generated an Ad ID and marked it below."
+          : `${generatedCount} selected ads had no Creative ID. Toppy generated Ad IDs and marked them below.`
+      );
+    }
+    elements.generatedAlert.hidden = alertMessages.length === 0;
+    elements.generatedAlert.textContent = alertMessages.join(" ");
 
     const fragment = document.createDocumentFragment();
     state.selectedAds.forEach((ad, index) => {
@@ -585,6 +781,10 @@ export function createNewAdsController({ root, copyText, showToast }) {
   function clearUploadedData() {
     state.ads = [];
     state.selectedAds = [];
+    state.requestedCount = 0;
+    state.activeFilters = {};
+    state.rejectedAdIds = new Set();
+    state.reviewById = new Map();
     resetDynamicFilters();
     renderResults();
     elements.loadStatus.textContent = "No built-in New Video Data is loaded.";
@@ -602,6 +802,10 @@ export function createNewAdsController({ root, copyText, showToast }) {
 
     state.ads = [];
     state.selectedAds = [];
+    state.requestedCount = 0;
+    state.activeFilters = {};
+    state.rejectedAdIds = new Set();
+    state.reviewById = new Map();
     resetDynamicFilters();
     renderResults();
     elements.message.textContent = "";
@@ -633,6 +837,10 @@ export function createNewAdsController({ root, copyText, showToast }) {
       console.error(error);
       state.ads = [];
       state.selectedAds = [];
+      state.requestedCount = 0;
+      state.activeFilters = {};
+      state.rejectedAdIds = new Set();
+      state.reviewById = new Map();
       resetDynamicFilters();
       renderResults();
       elements.loadStatus.textContent = "Upload failed";
@@ -657,7 +865,8 @@ export function createNewAdsController({ root, copyText, showToast }) {
   elements.filterForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const count = Number(elements.filterForm.elements.count.value);
-    const matchingAds = filterNewAds(state.ads, getFilters());
+    const filters = getFilters();
+    const matchingAds = getAvailableAds(filters);
 
     if (state.ads.length === 0) {
       elements.message.textContent = "Upload New Video Data CSVs first.";
@@ -673,7 +882,12 @@ export function createNewAdsController({ root, copyText, showToast }) {
     }
 
     elements.message.textContent = "";
-    state.selectedAds = selectFilteredNewAds(state.ads, count, getFilters());
+    state.requestedCount = count;
+    state.activeFilters = filters;
+    state.reviewById = new Map();
+    state.selectedAds = selectFilteredNewAds(state.ads, count, filters, {
+      excludeIds: state.rejectedAdIds
+    });
 
     const languages = [...new Set(state.selectedAds.map((ad) => ad.language).filter(Boolean))];
     if (!elements.adsetForm.elements.language.value && languages.length === 1) {
@@ -710,6 +924,12 @@ export function createNewAdsController({ root, copyText, showToast }) {
   });
 
   elements.downloadSelected.addEventListener("click", async () => {
+    if (!canDownloadSelectedAds()) {
+      showToast("Open each Drive link and approve every check first");
+      updateDownloadState();
+      return;
+    }
+
     const originalLabel = elements.downloadSelected.textContent;
     elements.downloadSelected.disabled = true;
     elements.downloadSelected.textContent = "Downloading...";
@@ -727,7 +947,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
           : "The ads could not be downloaded."
       );
     } finally {
-      elements.downloadSelected.disabled = state.selectedAds.length === 0;
+      updateDownloadState();
       elements.downloadSelected.textContent = originalLabel;
     }
   });
