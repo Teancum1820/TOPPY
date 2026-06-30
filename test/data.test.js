@@ -33,6 +33,25 @@ test("consolidateAds pivots measure rows into one ad", () => {
   assert.equal(result.ads[0].metrics["Cost Per Lead"], "4.5");
 });
 
+test("consolidateAds uses Level 2 as the ad ID for Top Ads exports", () => {
+  const parsed = parseCsv(
+    [
+      "Level 1,Level 2,Measure Names,Adjust Ad?,Ad Mission,Ads Manager Link,Campaign Preview Link,Measure Values",
+      "English,1234567890123,% Found Taught,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0.166666667",
+      "English,1234567890123,People Baptized and Confirmed,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0",
+      "Spanish,9876543210987,% Found Taught,Scale,Chile Santiago Mission,https://business.facebook.com/ad2,https://fb.me/preview2,0.25"
+    ].join("\n")
+  );
+  const result = consolidateAds(parsed);
+
+  assert.equal(result.ads.length, 2);
+  assert.equal(result.ads[0].id, "1234567890123");
+  assert.equal(result.ads[0].fields["Level 1"], "English");
+  assert.equal(result.ads[0].fields["Ad Mission"], "Tennessee Nashville Mission");
+  assert.equal(result.ads[0].metrics["% Found Taught"], "0.166666667");
+  assert.equal(result.ads[0].metrics["People Baptized and Confirmed"], "0");
+});
+
 test("selectRandomAds returns unique ads and clamps the count", () => {
   const ads = Array.from({ length: 12 }, (_, index) => ({
     id: String(index + 1)

@@ -22,12 +22,16 @@ stored by Toppy, bundled into the app, or sent to a server by this app.
 Refreshing or closing the tab clears the uploaded rows.
 
 Version 2.3.1 defaults blank New Ads Script / Topic fields to the Mission name
-and adds a Download selected action for saving selected New Ads with Creative
-ID filenames.
+and adds a bulk download action for saving New Ads with Creative ID filenames.
 
 Version 2.3.2 adds a Windows-only rename script download for selected New Ads.
 Users can download the ads into one folder, save the generated PowerShell
 script there, and run it to rename the newest media files by Creative ID.
+
+Version 2.3.3 adds a Top Ads CSV example based on the test data export shape,
+prefers `Level 2` as the ad ID when Top Ads exports include `Level 1` language
+data, removes the New Ads rename script button, and renames the bulk New Ads
+action to Download all.
 
 ## Run locally
 
