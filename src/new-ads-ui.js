@@ -134,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.4 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.4.1 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -452,7 +452,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
 
   function markReviewLinkOpened(ad) {
     getReview(ad).opened = true;
-    setTimeout(renderResults, 0);
+    setTimeout(renderResultsPreservingScroll, 0);
   }
 
   function rejectAd(ad) {
@@ -474,14 +474,14 @@ export function createNewAdsController({ root, copyText, showToast }) {
     }
 
     updateMatchCount();
-    renderResults();
+    renderResultsPreservingScroll();
   }
 
   function handleReviewChoice(ad, key, value, checked) {
     const review = getReview(ad);
     if (!review.opened) {
       showToast("Open the Drive link first");
-      renderResults();
+      renderResultsPreservingScroll();
       return;
     }
 
@@ -489,7 +489,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
       if (review.checks[key] === value) {
         review.checks[key] = "";
       }
-      renderResults();
+      renderResultsPreservingScroll();
       return;
     }
 
@@ -499,7 +499,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
     }
 
     review.checks[key] = value;
-    renderResults();
+    renderResultsPreservingScroll();
   }
 
   function createReviewChoice(ad, key, value, disabled) {
@@ -758,6 +758,14 @@ export function createNewAdsController({ root, copyText, showToast }) {
       fragment.append(createAdCard(ad, index));
     });
     elements.list.append(fragment);
+  }
+
+  function renderResultsPreservingScroll() {
+    const x = window.scrollX;
+    const y = window.scrollY;
+    renderResults();
+    window.scrollTo(x, y);
+    requestAnimationFrame(() => window.scrollTo(x, y));
   }
 
   function populateFilters() {
