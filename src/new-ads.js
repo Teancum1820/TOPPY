@@ -113,8 +113,17 @@ export function filterNewAds(
   );
 }
 
-export function selectFilteredNewAds(ads, count, filters) {
-  return selectRandomAds(filterNewAds(ads, filters), count);
+export function selectFilteredNewAds(
+  ads,
+  count,
+  filters,
+  { excludeIds = [] } = {}
+) {
+  const excluded = new Set(excludeIds);
+  return selectRandomAds(
+    filterNewAds(ads, filters).filter((ad) => !excluded.has(ad.id)),
+    count
+  );
 }
 
 export function getNewAdFilterOptions(ads) {

@@ -171,3 +171,11 @@ export function selectRandomAds(ads, count) {
 
   return pool.slice(0, safeCount);
 }
+
+export function selectRandomAdsExcluding(ads, count, excludedIds = []) {
+  const excluded = new Set(excludedIds);
+  return selectRandomAds(
+    ads.filter((ad) => !excluded.has(ad.id)),
+    count
+  );
+}

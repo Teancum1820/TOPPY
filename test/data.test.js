@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { consolidateAds, parseCsv, selectRandomAds } from "../src/data.js";
+import {
+  consolidateAds,
+  parseCsv,
+  selectRandomAds,
+  selectRandomAdsExcluding
+} from "../src/data.js";
 
 test("parseCsv handles quoted commas, escaped quotes, and line breaks", () => {
   const csv =
@@ -61,4 +66,19 @@ test("selectRandomAds returns unique ads and clamps the count", () => {
   assert.equal(selection.length, 12);
   assert.equal(new Set(selection.map((ad) => ad.id)).size, 12);
   assert.equal(ads[0].id, "1");
+});
+
+test("selectRandomAdsExcluding skips rejected ad IDs", () => {
+  const ads = [
+    { id: "approved-1" },
+    { id: "rejected" },
+    { id: "approved-2" }
+  ];
+
+  const selection = selectRandomAdsExcluding(ads, 5, ["rejected"]);
+
+  assert.deepEqual(
+    selection.map((ad) => ad.id).sort(),
+    ["approved-1", "approved-2"]
+  );
 });

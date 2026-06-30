@@ -11,7 +11,8 @@ import {
   generateToppyAdId,
   getAdDownloadFilename,
   getGoogleDriveDownloadUrl,
-  parseNewAdsCsv
+  parseNewAdsCsv,
+  selectFilteredNewAds
 } from "../src/new-ads.js";
 
 test("parseNewAdsCsv maps linked rows and generates missing IDs", () => {
@@ -104,6 +105,52 @@ test("filterNewAds combines language, month, rating, format, and status", () => 
       status: "Available for Use"
     }).length,
     1
+  );
+});
+
+test("selectFilteredNewAds excludes rejected IDs", () => {
+  const ads = [
+    {
+      id: "keep-1",
+      language: "English",
+      month: "2026-03",
+      rating: 4,
+      format: "Video",
+      status: "Available for Use"
+    },
+    {
+      id: "reject",
+      language: "English",
+      month: "2026-03",
+      rating: 5,
+      format: "Video",
+      status: "Available for Use"
+    },
+    {
+      id: "keep-2",
+      language: "Spanish",
+      month: "2026-03",
+      rating: 5,
+      format: "Video",
+      status: "Available for Use"
+    }
+  ];
+
+  const selection = selectFilteredNewAds(
+    ads,
+    5,
+    {
+      month: "2026-03",
+      format: "Video"
+    },
+    {
+      excludeIds: ["reject"]
+    }
+  );
+
+  assert.deepEqual(
+    selection.map((ad) => ad.id).sort(),
+    ["keep-1", "keep-2"]
   );
 });
 

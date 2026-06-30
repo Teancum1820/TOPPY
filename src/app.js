@@ -5,15 +5,22 @@ import {
   CAMPAIGN_OBJECTIVES,
   getLocalDateInputValue
 } from "./campaign-name.js";
-import { consolidateAds, parseCsv, selectRandomAds } from "./data.js";
+import {
+  consolidateAds,
+  parseCsv,
+  selectRandomAdsExcluding
+} from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
 
 const state = {
   ads: [],
   selectedAds: [],
+  requestedCount: 0,
   metadataColumns: [],
   metricNames: [],
+  rejectedAdIds: new Set(),
+  reviewById: new Map(),
   installPrompt: null
 };
 
@@ -272,7 +279,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.3.3 · By Caleb Day</span>
+      <span>Toppy · Version 2.4 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -440,6 +447,194 @@ function createLink(url, label, className = "text-link") {
   return link;
 }
 
+const REVIEW_CHECK_KEYS = ["language", "video", "relevant"];
+
+function createEmptyReview() {
+  return {
+    opened: false,
+    checks: {
+      language: "",
+      video: "",
+      relevant: ""
+    }
+  };
+}
+
+function getReview(ad) {
+  if (!state.reviewById.has(ad.id)) {
+    state.reviewById.set(ad.id, createEmptyReview());
+  }
+
+  return state.reviewById.get(ad.id);
+}
+
+function getTopAdLanguageLabel(ad) {
+  const language = findField(ad, /level 1|language/i);
+  return (language || "Language").toUpperCase();
+}
+
+function getReviewCheckLabel(ad, key) {
+  if (key === "language") {
+    return getTopAdLanguageLabel(ad);
+  }
+  if (key === "video") {
+    return "Video";
+  }
+  return "Relevant";
+}
+
+function isReviewApproved(review) {
+  return (
+    review.opened &&
+    REVIEW_CHECK_KEYS.every((key) => review.checks[key] === "yes")
+  );
+}
+
+function getSelectedAdIds() {
+  return state.selectedAds.map((ad) => ad.id);
+}
+
+function getReplacementAd() {
+  const excludedIds = new Set([
+    ...state.rejectedAdIds,
+    ...getSelectedAdIds()
+  ]);
+  const [replacement] = selectRandomAdsExcluding(state.ads, 1, excludedIds);
+  return replacement ?? null;
+}
+
+function canCopySelectedAds() {
+  return (
+    state.selectedAds.length > 0 &&
+    state.selectedAds.length === state.requestedCount &&
+    state.selectedAds.every((ad) => isReviewApproved(getReview(ad)))
+  );
+}
+
+function updateCopyState() {
+  if (state.selectedAds.length === 0) {
+    elements.copy.disabled = true;
+    return;
+  }
+
+  const approvedCount = state.selectedAds.filter((ad) =>
+    isReviewApproved(getReview(ad))
+  ).length;
+  elements.copy.disabled = !canCopySelectedAds();
+
+  if (state.selectedAds.length < state.requestedCount) {
+    elements.summary.textContent = `${state.selectedAds.length} of ${state.requestedCount} ads selected - no unchecked replacements remain`;
+    return;
+  }
+
+  elements.summary.textContent = `${state.selectedAds.length} unique ads selected - ${approvedCount}/${state.selectedAds.length} approved for copy`;
+}
+
+function markReviewLinkOpened(ad) {
+  getReview(ad).opened = true;
+  setTimeout(renderResults, 0);
+}
+
+function rejectAd(ad) {
+  const index = state.selectedAds.findIndex((selectedAd) => selectedAd.id === ad.id);
+  if (index === -1) {
+    return;
+  }
+
+  state.rejectedAdIds.add(ad.id);
+  state.reviewById.delete(ad.id);
+  const replacement = getReplacementAd();
+
+  if (replacement) {
+    state.selectedAds.splice(index, 1, replacement);
+    showToast(`${ad.id} removed; replacement added`);
+  } else {
+    state.selectedAds.splice(index, 1);
+    showToast(`${ad.id} removed; no replacement ads remain`);
+  }
+
+  renderResults();
+}
+
+function handleReviewChoice(ad, key, value, checked) {
+  const review = getReview(ad);
+  if (!review.opened) {
+    showToast("Open the Ads Manager link first");
+    renderResults();
+    return;
+  }
+
+  if (!checked) {
+    if (review.checks[key] === value) {
+      review.checks[key] = "";
+    }
+    renderResults();
+    return;
+  }
+
+  if (value === "no") {
+    rejectAd(ad);
+    return;
+  }
+
+  review.checks[key] = value;
+  renderResults();
+}
+
+function createReviewChoice(ad, key, value, disabled) {
+  const review = getReview(ad);
+  const labelText = `${getReviewCheckLabel(ad, key)}: ${value === "yes" ? "Yes" : "No"}`;
+  const label = createElement("label", "review-choice");
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = review.checks[key] === value;
+  input.disabled = disabled;
+  input.addEventListener("change", () => {
+    handleReviewChoice(ad, key, value, input.checked);
+  });
+  label.append(input, createElement("span", "", labelText));
+  return label;
+}
+
+function createAdReviewPanel(ad) {
+  const managerUrl = findField(ad, /ads manager link/i);
+  const review = getReview(ad);
+  const approved = isReviewApproved(review);
+  const panel = createElement("div", "ad-review-panel");
+  panel.classList.toggle("approved", approved);
+
+  const heading = createElement("div", "ad-review-heading");
+  heading.append(
+    createElement("span", "field-label", "Review before copy"),
+    createElement(
+      "span",
+      "ad-review-status",
+      !managerUrl
+        ? "Ads Manager link missing"
+        : approved
+          ? "Approved"
+          : review.opened
+            ? "Check every item"
+            : "Open Ads Manager first"
+    )
+  );
+
+  const grid = createElement("div", "ad-review-grid");
+  const disabled = !managerUrl || !review.opened;
+  for (const key of REVIEW_CHECK_KEYS) {
+    const row = createElement("div", "ad-review-row");
+    row.append(
+      createElement("span", "review-check-name", getReviewCheckLabel(ad, key)),
+      createReviewChoice(ad, key, "yes", disabled),
+      createReviewChoice(ad, key, "no", disabled)
+    );
+    grid.append(row);
+  }
+
+  panel.append(heading, grid);
+  return panel;
+}
+
 function renderCampaignCard(ad, index) {
   const article = createElement("article", "campaign-card");
   const top = createElement("div", "campaign-top");
@@ -464,7 +659,9 @@ function renderCampaignCard(ad, index) {
   const managerUrl = findField(ad, /ads manager link/i);
   const previewUrl = findField(ad, /campaign preview link/i);
   if (managerUrl) {
-    actions.append(createLink(managerUrl, "Open ad"));
+    const managerLink = createLink(managerUrl, "Open ad");
+    managerLink.addEventListener("click", () => markReviewLinkOpened(ad));
+    actions.append(managerLink);
   }
   if (previewUrl) {
     actions.append(createLink(previewUrl, "Preview"));
@@ -528,6 +725,7 @@ function renderCampaignCard(ad, index) {
     details.querySelector(".details-icon").textContent = details.open ? "−" : "+";
   });
   article.append(details);
+  article.append(createAdReviewPanel(ad));
 
   return article;
 }
@@ -548,6 +746,8 @@ function renderResults() {
   elements.copy.disabled = false;
   elements.redraw.hidden = false;
   elements.summary.textContent = `${state.selectedAds.length} unique ads selected · No duplicates`;
+
+  updateCopyState();
 
   const fragment = document.createDocumentFragment();
   state.selectedAds.forEach((ad, index) => {
@@ -581,14 +781,21 @@ function generateCampaign({ scroll = true } = {}) {
     return;
   }
 
-  if (requestedCount > state.ads.length) {
-    elements.formMessage.textContent = `Choose ${state.ads.length} ads or fewer.`;
+  const availableAds = state.ads.filter((ad) => !state.rejectedAdIds.has(ad.id));
+  if (requestedCount > availableAds.length) {
+    elements.formMessage.textContent = `Choose ${availableAds.length} ads or fewer after rejected ads.`;
     elements.input.focus();
     return;
   }
 
   elements.formMessage.textContent = "";
-  state.selectedAds = selectRandomAds(state.ads, requestedCount);
+  state.requestedCount = requestedCount;
+  state.reviewById = new Map();
+  state.selectedAds = selectRandomAdsExcluding(
+    state.ads,
+    requestedCount,
+    state.rejectedAdIds
+  );
   renderResults();
 
   if (scroll) {
@@ -637,6 +844,12 @@ async function copyCampaignName() {
 }
 
 async function copyIds() {
+  if (!canCopySelectedAds()) {
+    showToast("Open each Ads Manager link and approve every check first");
+    updateCopyState();
+    return;
+  }
+
   const text = state.selectedAds.map((ad) => ad.id).join(" ");
   const copied = await copyText(text);
   if (!copied) {
@@ -667,8 +880,11 @@ function updateConnectionStatus() {
 function resetUploadedData(message = "Upload your own CSV to begin.") {
   state.ads = [];
   state.selectedAds = [];
+  state.requestedCount = 0;
   state.metadataColumns = [];
   state.metricNames = [];
+  state.rejectedAdIds = new Set();
+  state.reviewById = new Map();
   renderResults();
   elements.input.max = "1";
   elements.generate.disabled = true;

@@ -33,6 +33,11 @@ prefers `Level 2` as the ad ID when Top Ads exports include `Level 1` language
 data, removes the New Ads rename script button, and renames the bulk New Ads
 action to Download all.
 
+Version 2.4 adds required per-ad review checks before Top Ads IDs can be copied
+or New Ads videos can be downloaded. Users must open each ad link, approve the
+language, Video, and Relevant checks, and any No answer removes that ad and
+draws a replacement from the remaining eligible pool when one is available.
+
 ## Run locally
 
 ```sh
