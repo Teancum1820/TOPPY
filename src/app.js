@@ -281,7 +281,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.5 · By Caleb Day</span>
+      <span>Toppy · Version 2.5.1 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -736,11 +736,16 @@ function renderResults() {
 function renderResultsPreservingScroll() {
   const x = window.scrollX;
   const y = window.scrollY;
+  const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+  document.documentElement.style.scrollBehavior = "auto";
   renderResults();
   window.scrollTo({ left: x, top: y, behavior: "auto" });
   requestAnimationFrame(() =>
     window.scrollTo({ left: x, top: y, behavior: "auto" })
   );
+  requestAnimationFrame(() => {
+    document.documentElement.style.scrollBehavior = previousScrollBehavior;
+  });
 }
 
 function setCount(value) {
