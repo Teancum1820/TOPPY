@@ -7,6 +7,7 @@ import {
   downloadNewAdFiles,
   downloadWindowsRenameScript,
   filterNewAds,
+  getNewAdFilterOptions,
   getAdRenameScriptFilename,
   generateToppyAdId,
   getAdDownloadFilename,
@@ -71,41 +72,83 @@ test("parseNewAdsCsv skips Drive folders and uses the next valid file link", () 
   );
 });
 
-test("filterNewAds combines language, month, rating, format, and status", () => {
+test("filterNewAds combines timestamp month, quality pick, star, mission, and rating", () => {
   const ads = [
     {
       language: "English",
       month: "2026-03",
+      timestampMonth: "2026-07",
       rating: 4,
+      ratingLabel: "4",
       format: "Video",
-      status: "Available for Use"
+      status: "Available for Use",
+      qualityPick: "Yes",
+      star: "No",
+      mission: "Denver"
     },
     {
       language: "English",
       month: "2026-03",
-      rating: 2,
+      timestampMonth: "2026-07",
       format: "Video",
-      status: "Available for Use"
+      rating: 5,
+      ratingLabel: "5",
+      status: "Available for Use",
+      qualityPick: "No",
+      star: "No",
+      mission: "Denver"
     },
     {
       language: "Spanish",
       month: "2026-03",
+      timestampMonth: "2026-08",
       rating: 5,
+      ratingLabel: "5",
       format: "Image",
-      status: "Rating Pending"
+      status: "Rating Pending",
+      qualityPick: "Yes",
+      star: "Yes",
+      mission: "Boise"
     }
   ];
 
   assert.equal(
     filterNewAds(ads, {
-      language: "English",
-      month: "2026-03",
-      minRating: "3",
-      format: "Video",
-      status: "Available for Use"
+      timestampMonth: "2026-07",
+      qualityPick: "Yes",
+      star: "No",
+      mission: "Denver",
+      rating: "4"
     }).length,
     1
   );
+});
+
+test("parseNewAdsCsv maps timestamp, quality pick, and star filter fields", () => {
+  const csv = [
+    "Mission,Language,Script / Topic,Creative ID,Image?,Rating,Quality Pick,Star,Timestamp,Final Video Link",
+    "Denver,English,Come to Church,Upload-100,FALSE,5,TRUE,FALSE,7/9/2026,https://drive.google.com/file/d/abc/view",
+    "Boise,Spanish,Faith,Upload-101,FALSE,4,FALSE,TRUE,8/1/2026,https://drive.google.com/file/d/def/view"
+  ].join("\n");
+
+  const ads = parseNewAdsCsv(csv, {
+    month: "upload-1",
+    monthLabel: "My Upload"
+  });
+  const options = getNewAdFilterOptions(ads);
+
+  assert.equal(ads[0].timestampMonth, "2026-07");
+  assert.equal(ads[0].timestampMonthLabel, "July 2026");
+  assert.equal(ads[0].qualityPick, "Yes");
+  assert.equal(ads[0].star, "No");
+  assert.deepEqual(options.timestampMonths, [
+    ["2026-07", "July 2026"],
+    ["2026-08", "August 2026"]
+  ]);
+  assert.deepEqual(options.qualityPicks, ["No", "Yes"]);
+  assert.deepEqual(options.stars, ["No", "Yes"]);
+  assert.deepEqual(options.missions, ["Boise", "Denver"]);
+  assert.deepEqual(options.ratings, ["4", "5"]);
 });
 
 test("selectFilteredNewAds excludes rejected IDs", () => {
@@ -495,12 +538,12 @@ test("downloadWindowsRenameScript creates a PowerShell script download", () => {
   ]);
 });
 
-test("uploaded CSV data supports filtering by language and rating", () => {
+test("uploaded CSV data supports requested New Ads filters", () => {
   const csv = [
-    "Mission,Language,Script / Topic,Creative ID,Image?,Rating,Status,Final Video Link",
-    "Denver,English,Come to Church,Upload-100,FALSE,4,Available for Use,https://drive.google.com/file/d/abc/view",
-    "Boise,English,Faith,Upload-101,FALSE,2,Available for Use,https://drive.google.com/file/d/def/view",
-    "Provo,Spanish,Prayer,Upload-102,TRUE,5,Rating Pending,https://drive.google.com/file/d/ghi/view"
+    "Mission,Language,Script / Topic,Creative ID,Image?,Rating,Quality Pick,Star,Timestamp,Status,Final Video Link",
+    "Denver,English,Come to Church,Upload-100,FALSE,4,TRUE,FALSE,7/9/2026,Available for Use,https://drive.google.com/file/d/abc/view",
+    "Boise,English,Faith,Upload-101,FALSE,2,FALSE,FALSE,7/10/2026,Available for Use,https://drive.google.com/file/d/def/view",
+    "Provo,Spanish,Prayer,Upload-102,TRUE,5,TRUE,TRUE,8/1/2026,Rating Pending,https://drive.google.com/file/d/ghi/view"
   ].join("\n");
   const ads = parseNewAdsCsv(csv, {
     month: "upload-1",
@@ -509,14 +552,19 @@ test("uploaded CSV data supports filtering by language and rating", () => {
 
   assert.equal(
     filterNewAds(ads, {
-      language: "English",
-      minRating: "3"
+      timestampMonth: "2026-07",
+      qualityPick: "Yes",
+      star: "No",
+      mission: "Denver",
+      rating: "4"
     }).length,
     1
   );
   assert.equal(
     filterNewAds(ads, {
-      language: "Spanish"
+      timestampMonth: "2026-08",
+      star: "Yes",
+      rating: "5"
     }).length,
     1
   );

@@ -811,6 +811,16 @@ a {
   text-transform: uppercase;
 }
 
+.bottom-result-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 28px 0 0;
+}
+
+.bottom-result-actions .button {
+  min-width: 220px;
+}
+
 .campaign-card {
   border-bottom: 1px solid var(--line);
 }
@@ -1006,6 +1016,13 @@ a {
   gap: 8px;
   align-items: center;
   min-width: 0;
+}
+
+.ad-review-decision-grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
 }
 
 .review-check-name {
@@ -1686,6 +1703,10 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .ad-review-decision-grid {
+    grid-template-columns: 1fr;
+  }
+
   .review-choice {
     width: 100%;
     justify-content: flex-start;
@@ -1736,6 +1757,14 @@ footer {
   .result-actions .button {
     flex: 1;
     padding: 0 12px;
+  }
+
+  .bottom-result-actions {
+    justify-content: stretch;
+  }
+
+  .bottom-result-actions .button {
+    width: 100%;
   }
 
   .empty-state {

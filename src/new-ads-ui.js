@@ -134,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.4.1 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.5 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -259,38 +259,33 @@ export function createNewAdsController({ root, copyText, showToast }) {
           <input name="count" type="number" min="1" max="1" value="5" inputmode="numeric" required />
         </label>
         <label>
-          <span>Language</span>
-          <select name="language">
-            <option value="">All languages</option>
+          <span>Timestamp month</span>
+          <select name="timestampMonth">
+            <option value="">All timestamp months</option>
           </select>
         </label>
         <label>
-          <span>Month</span>
-          <select name="month">
-            <option value="">All uploads</option>
+          <span>Quality pick</span>
+          <select name="qualityPick">
+            <option value="">All quality picks</option>
           </select>
         </label>
         <label>
-          <span>Minimum rating</span>
-          <select name="minRating">
+          <span>Star</span>
+          <select name="star">
+            <option value="">All star values</option>
+          </select>
+        </label>
+        <label>
+          <span>Mission</span>
+          <select name="mission">
+            <option value="">All missions</option>
+          </select>
+        </label>
+        <label>
+          <span>Rating</span>
+          <select name="rating">
             <option value="">All ratings</option>
-            <option value="1">1 or above</option>
-            <option value="2">2 or above</option>
-            <option value="3">3 or above</option>
-            <option value="4">4 or above</option>
-            <option value="5">5 only</option>
-          </select>
-        </label>
-        <label>
-          <span>Format</span>
-          <select name="format">
-            <option value="">All formats</option>
-          </select>
-        </label>
-        <label>
-          <span>Status</span>
-          <select name="status">
-            <option value="">All statuses</option>
           </select>
         </label>
         <button class="button button-primary" type="submit" disabled>
@@ -372,11 +367,11 @@ export function createNewAdsController({ root, copyText, showToast }) {
   function getFilters() {
     const values = getFormValues(elements.filterForm);
     return {
-      language: values.language,
-      month: values.month,
-      minRating: values.minRating,
-      format: values.format,
-      status: values.status
+      timestampMonth: values.timestampMonth,
+      qualityPick: values.qualityPick,
+      star: values.star,
+      mission: values.mission,
+      rating: values.rating
     };
   }
 
@@ -555,7 +550,13 @@ export function createNewAdsController({ root, copyText, showToast }) {
 
   function resetDynamicFilters() {
     elements.filterForm.reset();
-    for (const name of ["language", "month", "format", "status"]) {
+    for (const name of [
+      "timestampMonth",
+      "qualityPick",
+      "star",
+      "mission",
+      "rating"
+    ]) {
       const select = elements.filterForm.elements[name];
       select.options.length = 1;
     }
@@ -764,25 +765,34 @@ export function createNewAdsController({ root, copyText, showToast }) {
     const x = window.scrollX;
     const y = window.scrollY;
     renderResults();
-    window.scrollTo(x, y);
-    requestAnimationFrame(() => window.scrollTo(x, y));
+    window.scrollTo({ left: x, top: y, behavior: "auto" });
+    requestAnimationFrame(() =>
+      window.scrollTo({ left: x, top: y, behavior: "auto" })
+    );
   }
 
   function populateFilters() {
     resetDynamicFilters();
     const options = getNewAdFilterOptions(state.ads);
     appendOptions(
-      elements.filterForm.elements.language,
-      options.languages.map((language) => [language, language])
-    );
-    appendOptions(elements.filterForm.elements.month, options.months);
-    appendOptions(
-      elements.filterForm.elements.format,
-      options.formats.map((format) => [format, format])
+      elements.filterForm.elements.timestampMonth,
+      options.timestampMonths
     );
     appendOptions(
-      elements.filterForm.elements.status,
-      options.statuses.map((status) => [status, status])
+      elements.filterForm.elements.qualityPick,
+      options.qualityPicks.map((value) => [value, value])
+    );
+    appendOptions(
+      elements.filterForm.elements.star,
+      options.stars.map((value) => [value, value])
+    );
+    appendOptions(
+      elements.filterForm.elements.mission,
+      options.missions.map((mission) => [mission, mission])
+    );
+    appendOptions(
+      elements.filterForm.elements.rating,
+      options.ratings.map((rating) => [rating, rating])
     );
   }
 

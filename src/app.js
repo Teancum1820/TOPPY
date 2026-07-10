@@ -234,10 +234,6 @@ app.innerHTML = `
             <button class="button button-secondary" id="redraw-button" type="button" hidden>
               Shuffle again
             </button>
-            <button class="button button-dark" id="copy-button" type="button" disabled>
-              <span>Copy all IDs</span>
-              <span aria-hidden="true">⧉</span>
-            </button>
           </div>
         </div>
 
@@ -250,6 +246,12 @@ app.innerHTML = `
         </div>
         <div class="result-summary" id="result-summary" hidden></div>
         <div class="campaign-list" id="campaign-list"></div>
+        <div class="bottom-result-actions" id="bottom-result-actions" hidden>
+          <button class="button button-dark" id="copy-button" type="button" disabled>
+            <span>Copy all AD IDs</span>
+            <span aria-hidden="true">⧉</span>
+          </button>
+        </div>
       </section>
 
       <section class="copycat-section" aria-labelledby="copycat-title">
@@ -279,7 +281,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.4.1 · By Caleb Day</span>
+      <span>Toppy · Version 2.5 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -332,6 +334,7 @@ const elements = {
   emptyState: document.querySelector("#empty-state"),
   summary: document.querySelector("#result-summary"),
   list: document.querySelector("#campaign-list"),
+  bottomActions: document.querySelector("#bottom-result-actions"),
   copy: document.querySelector("#copy-button"),
   redraw: document.querySelector("#redraw-button"),
   install: document.querySelector("#install-button"),
@@ -447,16 +450,10 @@ function createLink(url, label, className = "text-link") {
   return link;
 }
 
-const REVIEW_CHECK_KEYS = ["language", "video", "relevant"];
-
 function createEmptyReview() {
   return {
     opened: false,
-    checks: {
-      language: "",
-      video: "",
-      relevant: ""
-    }
+    decision: ""
   };
 }
 
@@ -468,26 +465,8 @@ function getReview(ad) {
   return state.reviewById.get(ad.id);
 }
 
-function getTopAdLanguageLabel(ad) {
-  const language = findField(ad, /level 1|language/i);
-  return (language || "Language").toUpperCase();
-}
-
-function getReviewCheckLabel(ad, key) {
-  if (key === "language") {
-    return getTopAdLanguageLabel(ad);
-  }
-  if (key === "video") {
-    return "Video";
-  }
-  return "Relevant";
-}
-
 function isReviewApproved(review) {
-  return (
-    review.opened &&
-    REVIEW_CHECK_KEYS.every((key) => review.checks[key] === "yes")
-  );
+  return review.opened && review.decision === "pass";
 }
 
 function getSelectedAdIds() {
@@ -556,7 +535,7 @@ function rejectAd(ad) {
   renderResultsPreservingScroll();
 }
 
-function handleReviewChoice(ad, key, value, checked) {
+function handleReviewDecision(ad, value, checked) {
   const review = getReview(ad);
   if (!review.opened) {
     showToast("Open the Ads Manager link first");
@@ -565,32 +544,32 @@ function handleReviewChoice(ad, key, value, checked) {
   }
 
   if (!checked) {
-    if (review.checks[key] === value) {
-      review.checks[key] = "";
+    if (review.decision === value) {
+      review.decision = "";
     }
     renderResultsPreservingScroll();
     return;
   }
 
-  if (value === "no") {
+  if (value === "fail") {
     rejectAd(ad);
     return;
   }
 
-  review.checks[key] = value;
+  review.decision = value;
   renderResultsPreservingScroll();
 }
 
-function createReviewChoice(ad, key, value, disabled) {
+function createReviewChoice(ad, value, disabled) {
   const review = getReview(ad);
-  const labelText = `${getReviewCheckLabel(ad, key)}: ${value === "yes" ? "Yes" : "No"}`;
+  const labelText = value === "pass" ? "Pass" : "Fail";
   const label = createElement("label", "review-choice");
   const input = document.createElement("input");
   input.type = "checkbox";
-  input.checked = review.checks[key] === value;
+  input.checked = review.decision === value;
   input.disabled = disabled;
   input.addEventListener("change", () => {
-    handleReviewChoice(ad, key, value, input.checked);
+    handleReviewDecision(ad, value, input.checked);
   });
   label.append(input, createElement("span", "", labelText));
   return label;
@@ -614,22 +593,18 @@ function createAdReviewPanel(ad) {
         : approved
           ? "Approved"
           : review.opened
-            ? "Check every item"
+            ? "Mark pass or fail"
             : "Open Ads Manager first"
     )
   );
 
-  const grid = createElement("div", "ad-review-grid");
+  const grid = createElement("div", "ad-review-decision-grid");
   const disabled = !managerUrl || !review.opened;
-  for (const key of REVIEW_CHECK_KEYS) {
-    const row = createElement("div", "ad-review-row");
-    row.append(
-      createElement("span", "review-check-name", getReviewCheckLabel(ad, key)),
-      createReviewChoice(ad, key, "yes", disabled),
-      createReviewChoice(ad, key, "no", disabled)
-    );
-    grid.append(row);
-  }
+  grid.append(
+    createElement("span", "review-check-name", "All ad standards"),
+    createReviewChoice(ad, "pass", disabled),
+    createReviewChoice(ad, "fail", disabled)
+  );
 
   panel.append(heading, grid);
   return panel;
@@ -738,6 +713,7 @@ function renderResults() {
     elements.summary.hidden = true;
     elements.copy.disabled = true;
     elements.redraw.hidden = true;
+    elements.bottomActions.hidden = true;
     return;
   }
 
@@ -745,6 +721,7 @@ function renderResults() {
   elements.summary.hidden = false;
   elements.copy.disabled = false;
   elements.redraw.hidden = false;
+  elements.bottomActions.hidden = false;
   elements.summary.textContent = `${state.selectedAds.length} unique ads selected · No duplicates`;
 
   updateCopyState();
@@ -760,8 +737,10 @@ function renderResultsPreservingScroll() {
   const x = window.scrollX;
   const y = window.scrollY;
   renderResults();
-  window.scrollTo(x, y);
-  requestAnimationFrame(() => window.scrollTo(x, y));
+  window.scrollTo({ left: x, top: y, behavior: "auto" });
+  requestAnimationFrame(() =>
+    window.scrollTo({ left: x, top: y, behavior: "auto" })
+  );
 }
 
 function setCount(value) {
