@@ -15,6 +15,64 @@ function isTrue(value) {
   return /^(true|yes|1)$/i.test(clean(value));
 }
 
+function getRecordValue(record, ...columns) {
+  for (const column of columns) {
+    const value = clean(record[column]);
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+}
+
+function formatBooleanFilter(value) {
+  if (/^(true|yes|1)$/i.test(clean(value))) {
+    return "Yes";
+  }
+  if (/^(false|no|0)$/i.test(clean(value))) {
+    return "No";
+  }
+  return "";
+}
+
+function parseTimestampMonth(value) {
+  const text = clean(value);
+  if (!text) {
+    return { value: "", label: "" };
+  }
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) {
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    return {
+      value: `${parsed.getFullYear()}-${month}`,
+      label: parsed.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric"
+      })
+    };
+  }
+
+  const numericMatch = /^(\d{1,2})[/-](\d{1,2})[/-]((?:19|20)?\d{2})/.exec(text);
+  if (numericMatch) {
+    const [, month, , yearText] = numericMatch;
+    const year = yearText.length === 2 ? `20${yearText}` : yearText;
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    if (!Number.isNaN(date.getTime())) {
+      const monthValue = String(date.getMonth() + 1).padStart(2, "0");
+      return {
+        value: `${date.getFullYear()}-${monthValue}`,
+        label: date.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric"
+        })
+      };
+    }
+  }
+
+  return { value: text, label: text };
+}
+
 function getVideoUrl(record) {
   for (const column of LINK_COLUMNS) {
     const value = clean(record[column]);
@@ -62,6 +120,9 @@ export function parseNewAdsCsv(
     const sheetId = clean(record["Creative ID"]);
     const ratingText = clean(record.Rating);
     const ratingValue = Number(ratingText);
+    const timestampMonth = parseTimestampMonth(
+      getRecordValue(record, "Timestamp", "Time Stamp")
+    );
     const language = clean(
       record.Language ?? record["Language🌍💬"] ?? record["Language🌍💬 "]
     );
@@ -77,9 +138,15 @@ export function parseNewAdsCsv(
         language,
         rating:
           ratingText && Number.isFinite(ratingValue) ? ratingValue : null,
+        ratingLabel: ratingText,
         format: image ? "Image" : "Video",
         videoUrl,
         mission: clean(record.Mission),
+        timestamp: getRecordValue(record, "Timestamp", "Time Stamp"),
+        timestampMonth: timestampMonth.value,
+        timestampMonthLabel: timestampMonth.label,
+        qualityPick: formatBooleanFilter(record["Quality Pick"]),
+        star: formatBooleanFilter(record.Star),
         country: clean(record.Country),
         missionaryNames: clean(record["Missionary Names"]),
         topic: clean(record["Script / Topic"]),
@@ -96,20 +163,26 @@ export function filterNewAds(
   {
     language = "",
     month = "",
-    minRating = "",
+    timestampMonth = "",
+    rating = "",
     format = "",
-    status = ""
+    status = "",
+    qualityPick = "",
+    star = "",
+    mission = ""
   } = {}
 ) {
-  const minimum = minRating === "" ? null : Number(minRating);
-
   return ads.filter(
     (ad) =>
       (!language || ad.language === language) &&
       (!month || ad.month === month) &&
-      (minimum === null || (ad.rating !== null && ad.rating >= minimum)) &&
+      (!timestampMonth || ad.timestampMonth === timestampMonth) &&
+      (!rating || ad.ratingLabel === rating) &&
       (!format || ad.format === format) &&
-      (!status || ad.status === status)
+      (!status || ad.status === status) &&
+      (!qualityPick || ad.qualityPick === qualityPick) &&
+      (!star || ad.star === star) &&
+      (!mission || ad.mission === mission)
   );
 }
 
@@ -135,6 +208,17 @@ export function getNewAdFilterOptions(ads) {
   return {
     languages: uniqueSorted(ads.map((ad) => ad.language)),
     months: [...new Map(ads.map((ad) => [ad.month, ad.monthLabel])).entries()],
+    timestampMonths: [
+      ...new Map(
+        ads
+          .filter((ad) => ad.timestampMonth)
+          .map((ad) => [ad.timestampMonth, ad.timestampMonthLabel])
+      ).entries()
+    ],
+    ratings: uniqueSorted(ads.map((ad) => ad.ratingLabel)),
+    qualityPicks: uniqueSorted(ads.map((ad) => ad.qualityPick)),
+    stars: uniqueSorted(ads.map((ad) => ad.star)),
+    missions: uniqueSorted(ads.map((ad) => ad.mission)),
     formats: uniqueSorted(ads.map((ad) => ad.format)),
     statuses: uniqueSorted(ads.map((ad) => ad.status))
   };
