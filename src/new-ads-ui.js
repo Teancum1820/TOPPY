@@ -134,7 +134,7 @@ export function createNewAdsController({ root, copyText, showToast }) {
   root.innerHTML = `
     <div class="new-ads-hero">
       <div>
-        <span class="eyebrow">Version 2.5 / New Video Data upload</span>
+        <span class="eyebrow">Version 2.5.1 / New Video Data upload</span>
         <h1>Upload and name<br><em>new ads.</em></h1>
         <p>
           Choose your own New Video Data CSV files, filter linked rows locally,
@@ -375,16 +375,10 @@ export function createNewAdsController({ root, copyText, showToast }) {
     };
   }
 
-  const REVIEW_CHECK_KEYS = ["language", "video", "relevant"];
-
   function createEmptyReview() {
     return {
       opened: false,
-      checks: {
-        language: "",
-        video: "",
-        relevant: ""
-      }
+      decision: ""
     };
   }
 
@@ -396,21 +390,8 @@ export function createNewAdsController({ root, copyText, showToast }) {
     return state.reviewById.get(ad.id);
   }
 
-  function getReviewCheckLabel(ad, key) {
-    if (key === "language") {
-      return (ad.language || "Language").toUpperCase();
-    }
-    if (key === "video") {
-      return "Video";
-    }
-    return "Relevant";
-  }
-
   function isReviewApproved(review) {
-    return (
-      review.opened &&
-      REVIEW_CHECK_KEYS.every((key) => review.checks[key] === "yes")
-    );
+    return review.opened && review.decision === "pass";
   }
 
   function getSelectedAdIds() {
@@ -472,41 +453,57 @@ export function createNewAdsController({ root, copyText, showToast }) {
     renderResultsPreservingScroll();
   }
 
-  function handleReviewChoice(ad, key, value, checked) {
+  function updateReviewPanel(panel, review) {
+    const approved = isReviewApproved(review);
+    panel.classList.toggle("approved", approved);
+    const status = panel.querySelector(".ad-review-status");
+    if (status) {
+      status.textContent = approved
+        ? "Approved"
+        : review.opened
+          ? "Mark pass or fail"
+          : "Open Drive first";
+    }
+    updateDownloadState();
+  }
+
+  function handleReviewDecision(ad, value, checked, panel) {
     const review = getReview(ad);
     if (!review.opened) {
       showToast("Open the Drive link first");
-      renderResultsPreservingScroll();
+      updateReviewPanel(panel, review);
       return;
     }
 
     if (!checked) {
-      if (review.checks[key] === value) {
-        review.checks[key] = "";
+      if (review.decision === value) {
+        review.decision = "";
       }
-      renderResultsPreservingScroll();
+      updateReviewPanel(panel, review);
       return;
     }
 
-    if (value === "no") {
+    if (value === "fail") {
       rejectAd(ad);
       return;
     }
 
-    review.checks[key] = value;
-    renderResultsPreservingScroll();
+    review.decision = value;
+    updateReviewPanel(panel, review);
   }
 
-  function createReviewChoice(ad, key, value, disabled) {
+  function createReviewChoice(ad, value, disabled, panel) {
     const review = getReview(ad);
-    const labelText = `${getReviewCheckLabel(ad, key)}: ${value === "yes" ? "Yes" : "No"}`;
+    const labelText = value === "pass" ? "Pass" : "Fail";
     const label = createElement("label", "review-choice");
     const input = document.createElement("input");
     input.type = "checkbox";
-    input.checked = review.checks[key] === value;
+    input.checked = review.decision === value;
     input.disabled = disabled;
-    input.addEventListener("change", () => {
-      handleReviewChoice(ad, key, value, input.checked);
+    input.addEventListener("click", (event) => event.stopPropagation());
+    input.addEventListener("change", (event) => {
+      event.preventDefault();
+      handleReviewDecision(ad, value, input.checked, panel);
     });
     label.append(input, createElement("span", "", labelText));
     return label;
@@ -527,22 +524,18 @@ export function createNewAdsController({ root, copyText, showToast }) {
         approved
           ? "Approved"
           : review.opened
-            ? "Check every item"
+            ? "Mark pass or fail"
             : "Open Drive first"
       )
     );
 
-    const grid = createElement("div", "ad-review-grid");
+    const grid = createElement("div", "ad-review-decision-grid");
     const disabled = !review.opened;
-    for (const key of REVIEW_CHECK_KEYS) {
-      const row = createElement("div", "ad-review-row");
-      row.append(
-        createElement("span", "review-check-name", getReviewCheckLabel(ad, key)),
-        createReviewChoice(ad, key, "yes", disabled),
-        createReviewChoice(ad, key, "no", disabled)
-      );
-      grid.append(row);
-    }
+    grid.append(
+      createElement("span", "review-check-name", "All ad standards"),
+      createReviewChoice(ad, "pass", disabled, panel),
+      createReviewChoice(ad, "fail", disabled, panel)
+    );
 
     panel.append(heading, grid);
     return panel;
@@ -764,11 +757,16 @@ export function createNewAdsController({ root, copyText, showToast }) {
   function renderResultsPreservingScroll() {
     const x = window.scrollX;
     const y = window.scrollY;
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "auto";
     renderResults();
     window.scrollTo({ left: x, top: y, behavior: "auto" });
     requestAnimationFrame(() =>
       window.scrollTo({ left: x, top: y, behavior: "auto" })
     );
+    requestAnimationFrame(() => {
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
+    });
   }
 
   function populateFilters() {
