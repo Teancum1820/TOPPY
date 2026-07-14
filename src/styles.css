@@ -713,6 +713,73 @@ a {
   line-height: 1.55;
 }
 
+.top-ads-filter-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.top-ads-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.top-ads-filter-grid label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.top-ads-filter-grid label > span {
+  color: #adb7b0;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.top-ads-filter-grid select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  background: #18231e;
+  font-size: 0.82rem;
+}
+
+.top-ads-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.top-ads-preset-row .button {
+  min-height: 42px;
+  color: #f8f6ef;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.top-ads-preset-row .button.active {
+  color: var(--ink);
+  border-color: var(--sage);
+  background: var(--sage);
+}
+
+.top-ads-match-count {
+  min-height: 1.3em;
+  margin: 0;
+  color: #d4ddd7;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .csv-example {
   margin-top: 20px;
   padding: 18px;
@@ -1551,6 +1618,10 @@ footer {
 
   .generator-form {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .top-ads-filter-grid {
+    grid-template-columns: 1fr;
   }
 
   .generate-button {

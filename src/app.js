@@ -6,9 +6,13 @@ import {
   getLocalDateInputValue
 } from "./campaign-name.js";
 import {
+  AD_PERFORMANCE_FIELDS,
   consolidateAds,
+  filterAdsByPreset,
+  getAdPerformanceValue,
   parseCsv,
-  selectRandomAdsExcluding
+  selectRandomAdsExcluding,
+  sortAdsByPerformance
 } from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import "./styles.css";
@@ -19,6 +23,13 @@ const state = {
   requestedCount: 0,
   metadataColumns: [],
   metricNames: [],
+  topAdsFilters: {
+    adjustAd: "",
+    metricKey: "",
+    sortKey: "baptizedConfirmed",
+    sortDirection: "desc",
+    preset: ""
+  },
   rejectedAdIds: new Set(),
   reviewById: new Map(),
   installPrompt: null
@@ -27,6 +38,9 @@ const state = {
 const app = document.querySelector("#app");
 const objectiveOptions = CAMPAIGN_OBJECTIVES.map(
   (objective) => `<option value="${objective}">${objective}</option>`
+).join("");
+const topAdsSortOptions = AD_PERFORMANCE_FIELDS.map(
+  (field) => `<option value="${field.key}">${field.label}</option>`
 ).join("");
 
 app.innerHTML = `
@@ -187,6 +201,48 @@ app.innerHTML = `
           metric rows, and any performance columns you want to review; the file
           is read in your browser for this session.
         </p>
+        <div class="top-ads-filter-panel" aria-label="Top Ads filters and sorting">
+          <div class="top-ads-filter-grid">
+            <label>
+              <span>Adjust Ad</span>
+              <select id="top-ads-adjust-filter" disabled>
+                <option value="">Grow and Remove</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort by</span>
+              <select id="top-ads-sort-key" disabled>
+                ${topAdsSortOptions}
+              </select>
+            </label>
+            <label>
+              <span>Only with</span>
+              <select id="top-ads-metric-filter" disabled>
+                <option value="">Any metric value</option>
+                ${topAdsSortOptions}
+              </select>
+            </label>
+            <label>
+              <span>Direction</span>
+              <select id="top-ads-sort-direction" disabled>
+                <option value="desc">Highest first</option>
+                <option value="asc">Lowest first</option>
+              </select>
+            </label>
+          </div>
+          <div class="top-ads-preset-row" role="group" aria-label="Top Ads preset filters">
+            <button class="button button-secondary" id="top-performing-filter" type="button" disabled>
+              Top Performing Ads
+            </button>
+            <button class="button button-secondary" id="through-roof-filter" type="button" disabled>
+              The Numbers are through the roof
+            </button>
+            <button class="button button-secondary" id="clear-top-ads-filters" type="button" disabled>
+              Clear filters
+            </button>
+          </div>
+          <p class="top-ads-match-count" id="top-ads-match-count">Upload CSV data to filter ads.</p>
+        </div>
         <div class="csv-example" aria-label="Top Ads CSV example">
           <span class="field-label">Example CSV shape</span>
           <p>
@@ -281,7 +337,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.5.1 · By Caleb Day</span>
+      <span>Toppy · Version 2.5.2 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -329,6 +385,14 @@ const elements = {
   decrease: document.querySelector("#decrease-count"),
   increase: document.querySelector("#increase-count"),
   generate: document.querySelector(".generate-button"),
+  topAdsAdjustFilter: document.querySelector("#top-ads-adjust-filter"),
+  topAdsMetricFilter: document.querySelector("#top-ads-metric-filter"),
+  topAdsSortKey: document.querySelector("#top-ads-sort-key"),
+  topAdsSortDirection: document.querySelector("#top-ads-sort-direction"),
+  topPerformingFilter: document.querySelector("#top-performing-filter"),
+  throughRoofFilter: document.querySelector("#through-roof-filter"),
+  clearTopAdsFilters: document.querySelector("#clear-top-ads-filters"),
+  topAdsMatchCount: document.querySelector("#top-ads-match-count"),
   inventoryCount: document.querySelector("#inventory-count"),
   formMessage: document.querySelector("#form-message"),
   emptyState: document.querySelector("#empty-state"),
@@ -473,12 +537,42 @@ function getSelectedAdIds() {
   return state.selectedAds.map((ad) => ad.id);
 }
 
+function getFilteredTopAds({ includeRejected = false } = {}) {
+  const filters = state.topAdsFilters;
+  const rejected = state.rejectedAdIds;
+  const baseAds = state.ads.filter((ad) => includeRejected || !rejected.has(ad.id));
+  const adjustedAds = filters.adjustAd
+    ? baseAds.filter(
+        (ad) =>
+          getAdPerformanceValue(ad, "adjustAd").toLowerCase() ===
+          filters.adjustAd.toLowerCase()
+      )
+    : baseAds;
+  const metricFilteredAds = filters.metricKey
+    ? adjustedAds.filter((ad) => {
+        const value = getAdPerformanceValue(ad, filters.metricKey);
+        const numeric = Number(String(value).replace(/[$,%\s]/g, ""));
+        return Number.isFinite(numeric) ? numeric > 0 : Boolean(value);
+      })
+    : adjustedAds;
+  const presetAds = filterAdsByPreset(metricFilteredAds, filters.preset);
+  return sortAdsByPerformance(
+    presetAds,
+    filters.sortKey,
+    filters.sortDirection
+  );
+}
+
 function getReplacementAd() {
   const excludedIds = new Set([
     ...state.rejectedAdIds,
     ...getSelectedAdIds()
   ]);
-  const [replacement] = selectRandomAdsExcluding(state.ads, 1, excludedIds);
+  const [replacement] = selectRandomAdsExcluding(
+    getFilteredTopAds({ includeRejected: true }),
+    1,
+    excludedIds
+  );
   return replacement ?? null;
 }
 
@@ -532,6 +626,7 @@ function rejectAd(ad) {
     showToast(`${ad.id} removed; no replacement ads remain`);
   }
 
+  updateTopAdsFilterControls();
   renderResultsPreservingScroll();
 }
 
@@ -749,13 +844,75 @@ function renderResultsPreservingScroll() {
 }
 
 function setCount(value) {
-  const max = state.ads.length || 1;
+  const max = getFilteredTopAds().length || 1;
   const count = Math.max(1, Math.min(Math.trunc(Number(value) || 1), max));
   elements.input.value = count;
 
   document.querySelectorAll("[data-count]").forEach((button) => {
     button.classList.toggle("active", Number(button.dataset.count) === count);
   });
+}
+
+function setTopAdsControlsDisabled(disabled) {
+  [
+    elements.topAdsAdjustFilter,
+    elements.topAdsMetricFilter,
+    elements.topAdsSortKey,
+    elements.topAdsSortDirection,
+    elements.topPerformingFilter,
+    elements.throughRoofFilter,
+    elements.clearTopAdsFilters
+  ].forEach((element) => {
+    element.disabled = disabled;
+  });
+}
+
+function populateAdjustAdOptions() {
+  const values = [
+    ...new Set(
+      state.ads
+        .map((ad) => getAdPerformanceValue(ad, "adjustAd"))
+        .filter(Boolean)
+    )
+  ].sort((left, right) => left.localeCompare(right));
+
+  elements.topAdsAdjustFilter.replaceChildren(
+    new Option("Grow and Remove", ""),
+    ...values.map((value) => new Option(value, value))
+  );
+}
+
+function updateTopAdsFilterControls() {
+  const hasAds = state.ads.length > 0;
+  setTopAdsControlsDisabled(!hasAds);
+
+  elements.topAdsAdjustFilter.value = state.topAdsFilters.adjustAd;
+  elements.topAdsMetricFilter.value = state.topAdsFilters.metricKey;
+  elements.topAdsSortKey.value = state.topAdsFilters.sortKey;
+  elements.topAdsSortDirection.value = state.topAdsFilters.sortDirection;
+  elements.topPerformingFilter.classList.toggle(
+    "active",
+    state.topAdsFilters.preset === "top-performing"
+  );
+  elements.throughRoofFilter.classList.toggle(
+    "active",
+    state.topAdsFilters.preset === "through-the-roof"
+  );
+
+  const matchingCount = getFilteredTopAds().length;
+  elements.topAdsMatchCount.textContent = hasAds
+    ? `${matchingCount} of ${state.ads.length} ads match the current filters.`
+    : "Upload CSV data to filter ads.";
+  elements.input.max = String(Math.max(1, matchingCount));
+  if (hasAds) {
+    setCount(elements.input.value);
+  }
+}
+
+function setTopAdsPreset(preset) {
+  state.topAdsFilters.preset =
+    state.topAdsFilters.preset === preset ? "" : preset;
+  updateTopAdsFilterControls();
 }
 
 function generateCampaign({ scroll = true } = {}) {
@@ -773,9 +930,9 @@ function generateCampaign({ scroll = true } = {}) {
     return;
   }
 
-  const availableAds = state.ads.filter((ad) => !state.rejectedAdIds.has(ad.id));
+  const availableAds = getFilteredTopAds();
   if (requestedCount > availableAds.length) {
-    elements.formMessage.textContent = `Choose ${availableAds.length} ads or fewer after rejected ads.`;
+    elements.formMessage.textContent = `Choose ${availableAds.length} ads or fewer after filters and rejected ads.`;
     elements.input.focus();
     return;
   }
@@ -783,11 +940,7 @@ function generateCampaign({ scroll = true } = {}) {
   elements.formMessage.textContent = "";
   state.requestedCount = requestedCount;
   state.reviewById = new Map();
-  state.selectedAds = selectRandomAdsExcluding(
-    state.ads,
-    requestedCount,
-    state.rejectedAdIds
-  );
+  state.selectedAds = availableAds.slice(0, requestedCount);
   renderResults();
 
   if (scroll) {
@@ -875,8 +1028,17 @@ function resetUploadedData(message = "Upload your own CSV to begin.") {
   state.requestedCount = 0;
   state.metadataColumns = [];
   state.metricNames = [];
+  state.topAdsFilters = {
+    adjustAd: "",
+    metricKey: "",
+    sortKey: "baptizedConfirmed",
+    sortDirection: "desc",
+    preset: ""
+  };
   state.rejectedAdIds = new Set();
   state.reviewById = new Map();
+  populateAdjustAdOptions();
+  updateTopAdsFilterControls();
   renderResults();
   elements.input.max = "1";
   elements.generate.disabled = true;
@@ -907,8 +1069,9 @@ async function handleCsvUpload() {
     state.metadataColumns = inventory.metadataColumns;
     state.metricNames = inventory.metricNames;
     state.selectedAds = [];
+    populateAdjustAdOptions();
+    updateTopAdsFilterControls();
     renderResults();
-    elements.input.max = String(state.ads.length);
     elements.generate.disabled = false;
     elements.formMessage.textContent = "";
     elements.inventoryCount.textContent = `${state.ads.length} ads loaded`;
@@ -933,6 +1096,42 @@ elements.copyName.addEventListener("click", copyCampaignName);
 elements.decrease.addEventListener("click", () => setCount(Number(elements.input.value) - 1));
 elements.increase.addEventListener("click", () => setCount(Number(elements.input.value) + 1));
 elements.input.addEventListener("input", () => setCount(elements.input.value));
+elements.topAdsAdjustFilter.addEventListener("change", () => {
+  state.topAdsFilters.adjustAd = elements.topAdsAdjustFilter.value;
+  updateTopAdsFilterControls();
+});
+elements.topAdsMetricFilter.addEventListener("change", () => {
+  state.topAdsFilters.metricKey = elements.topAdsMetricFilter.value;
+  updateTopAdsFilterControls();
+});
+elements.topAdsSortKey.addEventListener("change", () => {
+  state.topAdsFilters.sortKey = elements.topAdsSortKey.value;
+  const config = AD_PERFORMANCE_FIELDS.find(
+    (field) => field.key === state.topAdsFilters.sortKey
+  );
+  state.topAdsFilters.sortDirection = config?.direction === "asc" ? "asc" : "desc";
+  updateTopAdsFilterControls();
+});
+elements.topAdsSortDirection.addEventListener("change", () => {
+  state.topAdsFilters.sortDirection = elements.topAdsSortDirection.value;
+  updateTopAdsFilterControls();
+});
+elements.topPerformingFilter.addEventListener("click", () =>
+  setTopAdsPreset("top-performing")
+);
+elements.throughRoofFilter.addEventListener("click", () =>
+  setTopAdsPreset("through-the-roof")
+);
+elements.clearTopAdsFilters.addEventListener("click", () => {
+  state.topAdsFilters = {
+    adjustAd: "",
+    metricKey: "",
+    sortKey: "baptizedConfirmed",
+    sortDirection: "desc",
+    preset: ""
+  };
+  updateTopAdsFilterControls();
+});
 elements.copy.addEventListener("click", copyIds);
 elements.redraw.addEventListener("click", () => generateCampaign({ scroll: false }));
 elements.csvUpload.addEventListener("change", handleCsvUpload);
