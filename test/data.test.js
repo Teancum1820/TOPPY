@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   consolidateAds,
+  filterAdsByPreset,
+  getAdPerformanceValue,
+  parseMetricNumber,
   parseCsv,
   selectRandomAds,
-  selectRandomAdsExcluding
+  selectRandomAdsExcluding,
+  sortAdsByPerformance
 } from "../src/data.js";
 
 test("parseCsv handles quoted commas, escaped quotes, and line breaks", () => {
@@ -80,5 +84,100 @@ test("selectRandomAdsExcluding skips rejected ad IDs", () => {
   assert.deepEqual(
     selection.map((ad) => ad.id).sort(),
     ["approved-1", "approved-2"]
+  );
+});
+
+test("parseMetricNumber handles currency, commas, and percentages", () => {
+  assert.equal(parseMetricNumber("$1,250.50"), 1250.5);
+  assert.equal(parseMetricNumber("42%"), 0.42);
+  assert.equal(parseMetricNumber(""), null);
+});
+
+test("sortAdsByPerformance supports requested Top Ads metrics", () => {
+  const ads = [
+    {
+      id: "low-cost",
+      fields: { "Adjust Ad?": "Grow" },
+      metrics: {
+        "Ad Leads": "12",
+        "Cost per Lead": "$2",
+        "People Baptized and Confirmed": "1"
+      }
+    },
+    {
+      id: "high-baptism",
+      fields: { "Adjust Ad?": "Remove" },
+      metrics: {
+        "Ad Leads": "30",
+        "Cost per Lead": "$8",
+        "People Baptized and Confirmed": "4"
+      }
+    }
+  ];
+
+  assert.equal(getAdPerformanceValue(ads[0], "adjustAd"), "Grow");
+  assert.deepEqual(
+    sortAdsByPerformance(ads, "baptizedConfirmed", "desc").map((ad) => ad.id),
+    ["high-baptism", "low-cost"]
+  );
+  assert.deepEqual(
+    sortAdsByPerformance(ads, "costPerLead", "asc").map((ad) => ad.id),
+    ["low-cost", "high-baptism"]
+  );
+});
+
+test("filterAdsByPreset finds top performing and through the roof ads", () => {
+  const ads = [
+    {
+      id: "best",
+      fields: { "Adjust Ad?": "Grow" },
+      metrics: {
+        "Ad Leads": "100",
+        "Cost per Lead": "$2",
+        "New People Being Taught": "30",
+        "People who attend sacrament meeting": "12",
+        "People with Baptism Date": "8",
+        "People Baptized and Confirmed": "5"
+      }
+    },
+    {
+      id: "volume",
+      fields: { "Adjust Ad?": "Grow" },
+      metrics: {
+        "Ad Leads": "300",
+        "Cost per Lead": "$12",
+        "New People Being Taught": "50",
+        "People who attend sacrament meeting": "25",
+        "People with Baptism Date": "12",
+        "People Baptized and Confirmed": "4"
+      }
+    },
+    {
+      id: "expensive",
+      fields: { "Adjust Ad?": "Remove" },
+      metrics: {
+        "Ad Leads": "80",
+        "Cost per Lead": "$40",
+        "New People Being Taught": "7",
+        "People who attend sacrament meeting": "2",
+        "People with Baptism Date": "1",
+        "People Baptized and Confirmed": "1"
+      }
+    },
+    {
+      id: "incomplete",
+      fields: { "Adjust Ad?": "Grow" },
+      metrics: {
+        "Ad Leads": "500",
+        "New People Being Taught": "0",
+        "People Baptized and Confirmed": "0"
+      }
+    }
+  ];
+
+  assert.equal(filterAdsByPreset(ads, "top-performing")[0].id, "best");
+  assert.deepEqual(
+    filterAdsByPreset(ads, "through-the-roof").map((ad) => ad.id),
+    ["volume"]
   );
 });

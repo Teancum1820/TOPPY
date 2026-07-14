@@ -9,6 +9,65 @@ const COLUMN_ALIASES = {
   ]
 };
 
+export const AD_PERFORMANCE_FIELDS = [
+  {
+    key: "adjustAd",
+    label: "Adjust Ad",
+    source: "field",
+    patterns: [/adjust\s*ad/i],
+    direction: "text"
+  },
+  {
+    key: "peopleFound",
+    label: "People Found",
+    source: "metric",
+    patterns: [/people\s*found/i, /people\s*found\s*taught/i, /found\s*taught/i],
+    direction: "desc"
+  },
+  {
+    key: "adLeads",
+    label: "Ad Leads",
+    source: "metric",
+    patterns: [/^ad\s*leads?$/i, /\bleads?\b/i],
+    direction: "desc"
+  },
+  {
+    key: "costPerLead",
+    label: "Cost per Lead",
+    source: "metric",
+    patterns: [/cost\s*per\s*lead/i, /cpl/i],
+    direction: "asc"
+  },
+  {
+    key: "newPeopleBeingTaught",
+    label: "New People Being Taught",
+    source: "metric",
+    patterns: [/new\s*people\s*being\s*taught/i, /new\s*people\s*taught/i],
+    direction: "desc"
+  },
+  {
+    key: "sacramentMeeting",
+    label: "People who attend sacrament meeting",
+    source: "metric",
+    patterns: [/sacrament\s*meeting/i, /attend(?:ing|ed)?\s*sacrament/i],
+    direction: "desc"
+  },
+  {
+    key: "baptismDate",
+    label: "People with Baptism Date",
+    source: "metric",
+    patterns: [/baptism\s*date/i, /with\s*baptism/i],
+    direction: "desc"
+  },
+  {
+    key: "baptizedConfirmed",
+    label: "People Baptized and Confirmed",
+    source: "metric",
+    patterns: [/baptized\s*and\s*confirmed/i, /people\s*baptized/i],
+    direction: "desc"
+  }
+];
+
 function normalizeColumnName(value) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -178,4 +237,191 @@ export function selectRandomAdsExcluding(ads, count, excludedIds = []) {
     ads.filter((ad) => !excluded.has(ad.id)),
     count
   );
+}
+
+export function parseMetricNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return null;
+  }
+
+  const multiplier = text.includes("%") ? 0.01 : 1;
+  const parsed = Number(text.replace(/[$,%\s]/g, ""));
+  return Number.isFinite(parsed) ? parsed * multiplier : null;
+}
+
+function findMatchingValue(values, patterns) {
+  const entries = Object.entries(values ?? {});
+  const match = entries.find(([name]) =>
+    patterns.some((pattern) => pattern.test(name))
+  );
+  return match?.[1] ?? "";
+}
+
+export function getAdPerformanceValue(ad, key) {
+  const config = AD_PERFORMANCE_FIELDS.find((field) => field.key === key);
+  if (!config) {
+    return "";
+  }
+
+  return findMatchingValue(
+    config.source === "field" ? ad.fields : ad.metrics,
+    config.patterns
+  );
+}
+
+function getNumericPerformanceValue(ad, key) {
+  return parseMetricNumber(getAdPerformanceValue(ad, key)) ?? 0;
+}
+
+function percentileCutoff(values, percentile) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.max(
+    0,
+    Math.min(sorted.length - 1, Math.ceil(sorted.length * percentile) - 1)
+  );
+  return sorted[index];
+}
+
+function scoreRatio(numerator, denominator) {
+  const bottom = Math.max(1, denominator);
+  return numerator / bottom;
+}
+
+export function getBaptismPercentage(ad) {
+  return Math.max(
+    parseMetricNumber(findMatchingValue(ad.metrics, [/baptism\s*%/i, /%.*bapt/i])) ?? 0,
+    scoreRatio(
+      getNumericPerformanceValue(ad, "baptizedConfirmed"),
+      getNumericPerformanceValue(ad, "adLeads")
+    )
+  );
+}
+
+export function getTopPerformingScore(ad) {
+  const baptized = getNumericPerformanceValue(ad, "baptizedConfirmed");
+  const baptismRate = getBaptismPercentage(ad);
+  const costPerLead = getNumericPerformanceValue(ad, "costPerLead");
+  const teaching = getNumericPerformanceValue(ad, "newPeopleBeingTaught");
+  const sacrament = getNumericPerformanceValue(ad, "sacramentMeeting");
+  const baptismDates = getNumericPerformanceValue(ad, "baptismDate");
+  const lowCostBonus = costPerLead > 0 ? 50 / costPerLead : 0;
+
+  return (
+    baptized * 300 +
+    baptismRate * 220 +
+    baptismDates * 12 +
+    sacrament * 6 +
+    teaching * 3 +
+    lowCostBonus * 4
+  );
+}
+
+export function getThroughTheRoofScore(ad) {
+  return (
+    getNumericPerformanceValue(ad, "adLeads") +
+    getNumericPerformanceValue(ad, "newPeopleBeingTaught") * 4 +
+    getNumericPerformanceValue(ad, "sacramentMeeting") * 6 +
+    getNumericPerformanceValue(ad, "baptismDate") * 10 +
+    getNumericPerformanceValue(ad, "baptizedConfirmed") * 18
+  );
+}
+
+export function sortAdsByPerformance(ads, sortKey, direction = "desc") {
+  if (!sortKey) {
+    return [...ads];
+  }
+
+  const config = AD_PERFORMANCE_FIELDS.find((field) => field.key === sortKey);
+  if (!config) {
+    return [...ads];
+  }
+
+  const multiplier = direction === "asc" ? 1 : -1;
+  return [...ads].sort((left, right) => {
+    const leftValue = getAdPerformanceValue(left, sortKey);
+    const rightValue = getAdPerformanceValue(right, sortKey);
+
+    if (config.direction === "text") {
+      return multiplier * String(leftValue).localeCompare(String(rightValue));
+    }
+
+    const leftNumber = parseMetricNumber(leftValue);
+    const rightNumber = parseMetricNumber(rightValue);
+    if (leftNumber === null && rightNumber === null) {
+      return left.id.localeCompare(right.id);
+    }
+    if (leftNumber === null) {
+      return 1;
+    }
+    if (rightNumber === null) {
+      return -1;
+    }
+    if (leftNumber === rightNumber) {
+      return left.id.localeCompare(right.id);
+    }
+    return multiplier * (leftNumber - rightNumber);
+  });
+}
+
+export function filterAdsByPreset(ads, preset) {
+  if (!preset) {
+    return [...ads];
+  }
+
+  if (preset === "top-performing") {
+    const scored = ads
+      .map((ad) => ({
+        ad,
+        score: getTopPerformingScore(ad),
+        baptized: getNumericPerformanceValue(ad, "baptizedConfirmed"),
+        baptismRate: getBaptismPercentage(ad)
+      }))
+      .filter(({ score, baptized, baptismRate }) =>
+        score > 0 && (baptized > 0 || baptismRate > 0)
+      );
+    const cutoff = percentileCutoff(
+      scored.map(({ score }) => score),
+      0.75
+    );
+    return scored
+      .filter(({ score }) => score >= cutoff)
+      .sort((left, right) => right.score - left.score)
+      .map(({ ad }) => ad);
+  }
+
+  if (preset === "through-the-roof") {
+    const requiredKeys = [
+      "adLeads",
+      "newPeopleBeingTaught",
+      "sacramentMeeting",
+      "baptismDate",
+      "baptizedConfirmed"
+    ];
+    const scored = ads
+      .map((ad) => ({
+        ad,
+        score: getThroughTheRoofScore(ad),
+        values: requiredKeys.map((key) => getNumericPerformanceValue(ad, key))
+      }))
+      .filter(({ values }) => values.every((value) => value > 0));
+    const cutoff = percentileCutoff(
+      scored.map(({ score }) => score),
+      0.9
+    );
+    return scored
+      .filter(({ score }) => score >= cutoff)
+      .sort((left, right) => right.score - left.score)
+      .map(({ ad }) => ad);
+  }
+
+  return [...ads];
 }
