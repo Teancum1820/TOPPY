@@ -42,23 +42,80 @@ test("consolidateAds pivots measure rows into one ad", () => {
   assert.equal(result.ads[0].metrics["Cost Per Lead"], "4.5");
 });
 
-test("consolidateAds uses Level 2 as the ad ID for Top Ads exports", () => {
+test("consolidateAds uses Level 1 as the ad ID for Top Ads exports", () => {
   const parsed = parseCsv(
     [
-      "Level 1,Level 2,Measure Names,Adjust Ad?,Ad Mission,Ads Manager Link,Campaign Preview Link,Measure Values",
-      "English,1234567890123,% Found Taught,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0.166666667",
-      "English,1234567890123,People Baptized and Confirmed,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0",
-      "Spanish,9876543210987,% Found Taught,Scale,Chile Santiago Mission,https://business.facebook.com/ad2,https://fb.me/preview2,0.25"
+      "Level 1,Measure Names,Adjust Ad?,Ad Mission,Ads Manager Link,Campaign Preview Link,Measure Values",
+      "1234567890123,% Found Taught,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0.166666667",
+      "1234567890123,People Baptized and Confirmed,Grow,Tennessee Nashville Mission,https://business.facebook.com/ad,https://fb.me/preview,0",
+      "9876543210987,% Found Taught,Scale,Chile Santiago Mission,https://business.facebook.com/ad2,https://fb.me/preview2,0.25"
     ].join("\n")
   );
   const result = consolidateAds(parsed);
 
   assert.equal(result.ads.length, 2);
   assert.equal(result.ads[0].id, "1234567890123");
-  assert.equal(result.ads[0].fields["Level 1"], "English");
   assert.equal(result.ads[0].fields["Ad Mission"], "Tennessee Nashville Mission");
   assert.equal(result.ads[0].metrics["% Found Taught"], "0.166666667");
   assert.equal(result.ads[0].metrics["People Baptized and Confirmed"], "0");
+});
+
+test("consolidateAds supports tab-delimited wide Top Ads exports", () => {
+  const parsed = parseCsv(
+    [
+      [
+        "Level 1",
+        "Adjust Ad?",
+        "Ads Manager Link",
+        "Campaign Preview Link",
+        "Ad Mission",
+        "People Found",
+        "Ad Leads",
+        "Cost Per Facebook Lead",
+        "New People Being Taught",
+        "People Who Attended Sacrament",
+        "People with a Baptism Date",
+        "People Baptized and Confirmed"
+      ].join("\t"),
+      [
+        "Grand Total",
+        "Total",
+        "Total",
+        "Total",
+        "Total",
+        "277,272",
+        "370,110",
+        "$32",
+        "42,748",
+        "6,426",
+        "3,094",
+        "353"
+      ].join("\t"),
+      [
+        "120220221775130246",
+        "Grow",
+        "https://business.facebook.com/ad",
+        "https://fb.me/preview",
+        "California Modesto",
+        "2,609",
+        "2,749",
+        "$34",
+        "604",
+        "103",
+        "53",
+        "12"
+      ].join("\t")
+    ].join("\n")
+  );
+  const result = consolidateAds(parsed);
+
+  assert.equal(result.ads.length, 1);
+  assert.equal(result.ads[0].id, "120220221775130246");
+  assert.equal(result.ads[0].fields["Adjust Ad?"], "Grow");
+  assert.equal(result.ads[0].fields["Ad Mission"], "California Modesto");
+  assert.equal(result.ads[0].metrics["People Found"], "2,609");
+  assert.equal(result.ads[0].metrics["Cost Per Facebook Lead"], "$34");
+  assert.ok(result.metricNames.includes("People Baptized and Confirmed"));
 });
 
 test("selectRandomAds returns unique ads and clamps the count", () => {
