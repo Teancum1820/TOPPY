@@ -246,26 +246,21 @@ app.innerHTML = `
         <div class="csv-example" aria-label="Top Ads CSV example">
           <span class="field-label">Example CSV shape</span>
           <p>
-            Top Ads works with exports like the test data: language in Level 1,
-            ad ID in Level 2, metric names and values in paired measure columns,
-            plus optional links and mission metadata.
+            Top Ads works with exports like the test data: ad ID in Level 1,
+            performance metrics in columns, plus optional links and mission metadata.
           </p>
           <dl class="csv-example-grid">
             <div>
               <dt>Level 1</dt>
-              <dd>Language, such as English</dd>
-            </div>
-            <div>
-              <dt>Level 2</dt>
               <dd>Ad ID from the export</dd>
             </div>
             <div>
-              <dt>Measure Names</dt>
-              <dd>Performance metric name</dd>
+              <dt>People Found</dt>
+              <dd>Performance metric column</dd>
             </div>
             <div>
-              <dt>Measure Values</dt>
-              <dd>Metric value for that ad</dd>
+              <dt>Cost Per Facebook Lead</dt>
+              <dd>Cost metric column</dd>
             </div>
             <div>
               <dt>Ad Mission</dt>
@@ -337,7 +332,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.5.2 · By Caleb Day</span>
+      <span>Toppy · Version 2.5.3 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -1081,7 +1076,7 @@ async function handleCsvUpload() {
   } catch (error) {
     console.error(error);
     resetUploadedData(
-      "Upload a CSV with an ad ID column, such as Ad ID, Level 2, Level 1, or ID."
+      "Upload a CSV with an ad ID column, such as Level 1, Ad ID, ID, or Level 2."
     );
   }
 }

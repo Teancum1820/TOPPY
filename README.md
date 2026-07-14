@@ -29,7 +29,7 @@ Users can download the ads into one folder, save the generated PowerShell
 script there, and run it to rename the newest media files by Creative ID.
 
 Version 2.3.3 adds a Top Ads CSV example based on the test data export shape,
-prefers `Level 2` as the ad ID when Top Ads exports include `Level 1` language
+prefers `Level 1` as the ad ID for current Top Ads exports
 data, removes the New Ads rename script button, and renames the bulk New Ads
 action to Download all.
 

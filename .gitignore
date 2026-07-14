@@ -6,3 +6,4 @@ dist/
 .chrome-pages-*/
 *.log
 .DS_Store
+test data/
