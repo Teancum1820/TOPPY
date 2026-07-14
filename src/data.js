@@ -11,6 +11,7 @@ const COLUMN_ALIASES = {
 
 const TOP_AD_METADATA_PATTERNS = [
   /adjust\s*ad/i,
+  /ad\s*country/i,
   /ads\s*manager\s*link/i,
   /campaign\s*preview\s*link/i,
   /(?:campaign|ad)\s*mission/i

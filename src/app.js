@@ -25,6 +25,7 @@ const state = {
   metricNames: [],
   topAdsFilters: {
     adjustAd: "",
+    adCountry: "",
     metricKey: "",
     sortKey: "baptizedConfirmed",
     sortDirection: "desc",
@@ -210,6 +211,12 @@ app.innerHTML = `
               </select>
             </label>
             <label>
+              <span>Ad Country</span>
+              <select id="top-ads-country-filter" disabled>
+                <option value="">All countries</option>
+              </select>
+            </label>
+            <label>
               <span>Sort by</span>
               <select id="top-ads-sort-key" disabled>
                 ${topAdsSortOptions}
@@ -332,7 +339,7 @@ app.innerHTML = `
     </main>
 
     <footer>
-      <span>Toppy · Version 2.5.3 · By Caleb Day</span>
+      <span>Toppy · Version 2.5.4 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -381,6 +388,7 @@ const elements = {
   increase: document.querySelector("#increase-count"),
   generate: document.querySelector(".generate-button"),
   topAdsAdjustFilter: document.querySelector("#top-ads-adjust-filter"),
+  topAdsCountryFilter: document.querySelector("#top-ads-country-filter"),
   topAdsMetricFilter: document.querySelector("#top-ads-metric-filter"),
   topAdsSortKey: document.querySelector("#top-ads-sort-key"),
   topAdsSortDirection: document.querySelector("#top-ads-sort-direction"),
@@ -543,13 +551,20 @@ function getFilteredTopAds({ includeRejected = false } = {}) {
           filters.adjustAd.toLowerCase()
       )
     : baseAds;
+  const countryFilteredAds = filters.adCountry
+    ? adjustedAds.filter(
+        (ad) =>
+          findField(ad, /ad\s*country/i).toLowerCase() ===
+          filters.adCountry.toLowerCase()
+      )
+    : adjustedAds;
   const metricFilteredAds = filters.metricKey
-    ? adjustedAds.filter((ad) => {
+    ? countryFilteredAds.filter((ad) => {
         const value = getAdPerformanceValue(ad, filters.metricKey);
         const numeric = Number(String(value).replace(/[$,%\s]/g, ""));
         return Number.isFinite(numeric) ? numeric > 0 : Boolean(value);
       })
-    : adjustedAds;
+    : countryFilteredAds;
   const presetAds = filterAdsByPreset(metricFilteredAds, filters.preset);
   return sortAdsByPerformance(
     presetAds,
@@ -851,6 +866,7 @@ function setCount(value) {
 function setTopAdsControlsDisabled(disabled) {
   [
     elements.topAdsAdjustFilter,
+    elements.topAdsCountryFilter,
     elements.topAdsMetricFilter,
     elements.topAdsSortKey,
     elements.topAdsSortDirection,
@@ -877,11 +893,27 @@ function populateAdjustAdOptions() {
   );
 }
 
+function populateAdCountryOptions() {
+  const values = [
+    ...new Set(
+      state.ads
+        .map((ad) => findField(ad, /ad\s*country/i))
+        .filter(Boolean)
+    )
+  ].sort((left, right) => left.localeCompare(right));
+
+  elements.topAdsCountryFilter.replaceChildren(
+    new Option("All countries", ""),
+    ...values.map((value) => new Option(value, value))
+  );
+}
+
 function updateTopAdsFilterControls() {
   const hasAds = state.ads.length > 0;
   setTopAdsControlsDisabled(!hasAds);
 
   elements.topAdsAdjustFilter.value = state.topAdsFilters.adjustAd;
+  elements.topAdsCountryFilter.value = state.topAdsFilters.adCountry;
   elements.topAdsMetricFilter.value = state.topAdsFilters.metricKey;
   elements.topAdsSortKey.value = state.topAdsFilters.sortKey;
   elements.topAdsSortDirection.value = state.topAdsFilters.sortDirection;
@@ -1025,6 +1057,7 @@ function resetUploadedData(message = "Upload your own CSV to begin.") {
   state.metricNames = [];
   state.topAdsFilters = {
     adjustAd: "",
+    adCountry: "",
     metricKey: "",
     sortKey: "baptizedConfirmed",
     sortDirection: "desc",
@@ -1033,6 +1066,7 @@ function resetUploadedData(message = "Upload your own CSV to begin.") {
   state.rejectedAdIds = new Set();
   state.reviewById = new Map();
   populateAdjustAdOptions();
+  populateAdCountryOptions();
   updateTopAdsFilterControls();
   renderResults();
   elements.input.max = "1";
@@ -1065,6 +1099,7 @@ async function handleCsvUpload() {
     state.metricNames = inventory.metricNames;
     state.selectedAds = [];
     populateAdjustAdOptions();
+    populateAdCountryOptions();
     updateTopAdsFilterControls();
     renderResults();
     elements.generate.disabled = false;
@@ -1095,6 +1130,10 @@ elements.topAdsAdjustFilter.addEventListener("change", () => {
   state.topAdsFilters.adjustAd = elements.topAdsAdjustFilter.value;
   updateTopAdsFilterControls();
 });
+elements.topAdsCountryFilter.addEventListener("change", () => {
+  state.topAdsFilters.adCountry = elements.topAdsCountryFilter.value;
+  updateTopAdsFilterControls();
+});
 elements.topAdsMetricFilter.addEventListener("change", () => {
   state.topAdsFilters.metricKey = elements.topAdsMetricFilter.value;
   updateTopAdsFilterControls();
@@ -1120,6 +1159,7 @@ elements.throughRoofFilter.addEventListener("click", () =>
 elements.clearTopAdsFilters.addEventListener("click", () => {
   state.topAdsFilters = {
     adjustAd: "",
+    adCountry: "",
     metricKey: "",
     sortKey: "baptizedConfirmed",
     sortDirection: "desc",
