@@ -1,5 +1,5 @@
 const COLUMN_ALIASES = {
-  id: ["ad id", "adid", "level 2", "id", "level 1"],
+  id: ["level 1", "ad id", "adid", "id", "level 2"],
   measureName: ["measure names", "measure name", "metric names", "metric name"],
   measureValue: [
     "measure values",
@@ -8,6 +8,13 @@ const COLUMN_ALIASES = {
     "metric value"
   ]
 };
+
+const TOP_AD_METADATA_PATTERNS = [
+  /adjust\s*ad/i,
+  /ads\s*manager\s*link/i,
+  /campaign\s*preview\s*link/i,
+  /(?:campaign|ad)\s*mission/i
+];
 
 export const AD_PERFORMANCE_FIELDS = [
   {
@@ -35,7 +42,7 @@ export const AD_PERFORMANCE_FIELDS = [
     key: "costPerLead",
     label: "Cost per Lead",
     source: "metric",
-    patterns: [/cost\s*per\s*lead/i, /cpl/i],
+    patterns: [/cost\s*per.*lead/i, /cpl/i],
     direction: "asc"
   },
   {
@@ -85,7 +92,15 @@ function findColumn(headers, aliases, fallback = "") {
   return fallback;
 }
 
+function detectDelimiter(text) {
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
+  const tabCount = (firstLine.match(/\t/g) ?? []).length;
+  const commaCount = (firstLine.match(/,/g) ?? []).length;
+  return tabCount > commaCount ? "\t" : ",";
+}
+
 export function parseCsv(text) {
+  const delimiter = detectDelimiter(text);
   const rows = [];
   let row = [];
   let field = "";
@@ -105,7 +120,7 @@ export function parseCsv(text) {
       }
     } else if (character === '"') {
       inQuotes = true;
-    } else if (character === ",") {
+    } else if (character === delimiter) {
       row.push(field);
       field = "";
     } else if (character === "\n") {
@@ -142,6 +157,14 @@ export function parseCsv(text) {
   return { headers, records };
 }
 
+function isTopAdMetadataColumn(column) {
+  return TOP_AD_METADATA_PATTERNS.some((pattern) => pattern.test(column));
+}
+
+function isSummaryRow(id) {
+  return /^grand\s+total$/i.test(id) || /^total$/i.test(id);
+}
+
 export function consolidateAds({ headers, records }) {
   if (headers.length === 0) {
     return {
@@ -158,15 +181,24 @@ export function consolidateAds({ headers, records }) {
   const excludedColumns = new Set(
     [idColumn, measureNameColumn, measureValueColumn].filter(Boolean)
   );
-  const metadataColumns = headers.filter(
-    (header) => !excludedColumns.has(header)
-  );
+  const hasMeasureRows = Boolean(measureNameColumn && measureValueColumn);
+  const metadataColumns = headers.filter((header) => {
+    if (excludedColumns.has(header)) {
+      return false;
+    }
+    return hasMeasureRows || isTopAdMetadataColumn(header);
+  });
+  const wideMetricColumns = hasMeasureRows
+    ? []
+    : headers.filter(
+        (header) => !excludedColumns.has(header) && !metadataColumns.includes(header)
+      );
   const adsById = new Map();
   const metricNames = new Set();
 
   for (const record of records) {
     const id = record[idColumn]?.trim();
-    if (!id) {
+    if (!id || isSummaryRow(id)) {
       continue;
     }
 
@@ -187,10 +219,17 @@ export function consolidateAds({ headers, records }) {
       }
     }
 
-    const metricName = record[measureNameColumn]?.trim();
-    if (metricName) {
-      metricNames.add(metricName);
-      ad.metrics[metricName] = record[measureValueColumn]?.trim() ?? "";
+    if (hasMeasureRows) {
+      const metricName = record[measureNameColumn]?.trim();
+      if (metricName) {
+        metricNames.add(metricName);
+        ad.metrics[metricName] = record[measureValueColumn]?.trim() ?? "";
+      }
+    } else {
+      for (const column of wideMetricColumns) {
+        metricNames.add(column);
+        ad.metrics[column] = record[column]?.trim() ?? "";
+      }
     }
   }
 
