@@ -69,6 +69,7 @@ test("consolidateAds supports tab-delimited wide Top Ads exports", () => {
         "Ads Manager Link",
         "Campaign Preview Link",
         "Ad Mission",
+        "Ad Country",
         "People Found",
         "Ad Leads",
         "Cost Per Facebook Lead",
@@ -79,6 +80,7 @@ test("consolidateAds supports tab-delimited wide Top Ads exports", () => {
       ].join("\t"),
       [
         "Grand Total",
+        "Total",
         "Total",
         "Total",
         "Total",
@@ -97,6 +99,7 @@ test("consolidateAds supports tab-delimited wide Top Ads exports", () => {
         "https://business.facebook.com/ad",
         "https://fb.me/preview",
         "California Modesto",
+        "United States",
         "2,609",
         "2,749",
         "$34",
@@ -113,8 +116,10 @@ test("consolidateAds supports tab-delimited wide Top Ads exports", () => {
   assert.equal(result.ads[0].id, "120220221775130246");
   assert.equal(result.ads[0].fields["Adjust Ad?"], "Grow");
   assert.equal(result.ads[0].fields["Ad Mission"], "California Modesto");
+  assert.equal(result.ads[0].fields["Ad Country"], "United States");
   assert.equal(result.ads[0].metrics["People Found"], "2,609");
   assert.equal(result.ads[0].metrics["Cost Per Facebook Lead"], "$34");
+  assert.equal(result.ads[0].metrics["Ad Country"], undefined);
   assert.ok(result.metricNames.includes("People Baptized and Confirmed"));
 });
 
