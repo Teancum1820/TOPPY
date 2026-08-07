@@ -10,6 +10,12 @@ their own CSV data in the browser.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
+Version 3.0 adds a **Campaign Builder** tab. Users can paste ad IDs and select
+a randomized combination of 3–5 unique ads, build a campaign name, generate
+campaign-description ideas from a keyword, and create starter headlines,
+primary text, and descriptions from a topic. Starter copy patterns live in
+`src/campaign-builder.js` so proven campaign examples can be added later.
+
 Version 2.3 adds a Top Ads still-image approval warning. Every time the
 **Top Ads** tab opens, users must acknowledge that all Still Images need Eden
 or Jacob approval before continuing; refusing closes the Toppy tab. The

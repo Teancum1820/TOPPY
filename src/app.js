@@ -15,6 +15,7 @@ import {
   sortAdsByPerformance
 } from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
+import { createCampaignBuilderController } from "./campaign-builder-ui.js";
 import "./styles.css";
 
 const state = {
@@ -87,6 +88,9 @@ app.innerHTML = `
         data-tab="new-ads"
       >
         New Ads
+      </button>
+      <button class="app-tab" type="button" role="tab" aria-selected="false" aria-controls="campaign-builder-panel" data-tab="campaign-builder">
+        Campaign Builder
       </button>
     </nav>
 
@@ -336,10 +340,11 @@ app.innerHTML = `
         data-tab-panel="new-ads"
         hidden
       ></section>
+      <section class="campaign-builder-page" id="campaign-builder-panel" role="tabpanel" data-tab-panel="campaign-builder" hidden></section>
     </main>
 
     <footer>
-      <span>Toppy · Version 2.5.4 · By Caleb Day</span>
+      <span>Toppy · Version 3.0 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -420,6 +425,11 @@ const newAdsController = createNewAdsController({
   copyText,
   showToast
 });
+const campaignBuilderController = createCampaignBuilderController({
+  root: document.querySelector("#campaign-builder-panel"),
+  copyText,
+  showToast
+});
 
 function setActiveTab(tabName) {
   elements.tabButtons.forEach((button) => {
@@ -436,6 +446,9 @@ function setActiveTab(tabName) {
   }
   if (tabName === "top-ads") {
     showTopAdsApproval();
+  }
+  if (tabName === "campaign-builder") {
+    campaignBuilderController.load();
   }
 }
 
