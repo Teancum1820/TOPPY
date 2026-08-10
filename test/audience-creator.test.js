@@ -7,6 +7,7 @@ import {
   lookupZip,
   parseLatLong,
   resultsToCsv,
+  resultsToTxt,
   splitAudienceInput
 } from "../src/audience-creator.js";
 
@@ -111,5 +112,29 @@ test("resultsToCsv escapes cells for copy output", () => {
       }
     ]),
     '"Input","Address","Latitude","Longitude","Zip Code","Status"\n"A ""quoted"" address","Somewhere","1","2","12345","Found"'
+  );
+});
+
+test("resultsToTxt formats location results for plain text export", () => {
+  assert.equal(
+    resultsToTxt([
+      {
+        input: "40.689247, -74.044502",
+        address: "Statue of Liberty, New York, NY 10004, USA",
+        latitude: "40.689247",
+        longitude: "-74.044502",
+        zip: "10004",
+        status: "Found"
+      }
+    ]),
+    [
+      "Location 1",
+      "Input: 40.689247, -74.044502",
+      "Address: Statue of Liberty, New York, NY 10004, USA",
+      "Latitude: 40.689247",
+      "Longitude: -74.044502",
+      "Zip Code: 10004",
+      "Status: Found"
+    ].join("\n")
   );
 });

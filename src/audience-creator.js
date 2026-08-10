@@ -137,3 +137,23 @@ export function resultsToCsv(results) {
     )
     .join("\n");
 }
+
+export function resultsToTxt(results) {
+  if (results.length === 0) {
+    return "";
+  }
+
+  return results
+    .map((result, index) =>
+      [
+        `Location ${index + 1}`,
+        `Input: ${result.input || ""}`,
+        `Address: ${result.address || ""}`,
+        `Latitude: ${result.latitude || ""}`,
+        `Longitude: ${result.longitude || ""}`,
+        `Zip Code: ${result.zip || ""}`,
+        `Status: ${result.status || ""}`
+      ].join("\n")
+    )
+    .join("\n\n");
+}
