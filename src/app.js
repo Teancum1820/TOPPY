@@ -16,6 +16,7 @@ import {
 } from "./data.js";
 import { createNewAdsController } from "./new-ads-ui.js";
 import { createCampaignBuilderController } from "./campaign-builder-ui.js";
+import { createAudienceCreatorController } from "./audience-creator-ui.js";
 import "./styles.css";
 
 const state = {
@@ -91,6 +92,9 @@ app.innerHTML = `
       </button>
       <button class="app-tab" type="button" role="tab" aria-selected="false" aria-controls="campaign-builder-panel" data-tab="campaign-builder">
         Campaign Builder
+      </button>
+      <button class="app-tab" type="button" role="tab" aria-selected="false" aria-controls="audience-creator-panel" data-tab="audience-creator">
+        Audience Creator
       </button>
     </nav>
 
@@ -341,10 +345,11 @@ app.innerHTML = `
         hidden
       ></section>
       <section class="campaign-builder-page" id="campaign-builder-panel" role="tabpanel" data-tab-panel="campaign-builder" hidden></section>
+      <section class="audience-creator-page" id="audience-creator-panel" role="tabpanel" data-tab-panel="audience-creator" hidden></section>
     </main>
 
     <footer>
-      <span>Toppy · Version 3.0 · By Caleb Day</span>
+      <span>Toppy · Version 4.0 · By Caleb Day</span>
       <span id="data-note">No data is stored</span>
       <span>Not affiliated with the FSC</span>
     </footer>
@@ -430,6 +435,11 @@ const campaignBuilderController = createCampaignBuilderController({
   copyText,
   showToast
 });
+const audienceCreatorController = createAudienceCreatorController({
+  root: document.querySelector("#audience-creator-panel"),
+  copyText,
+  showToast
+});
 
 function setActiveTab(tabName) {
   elements.tabButtons.forEach((button) => {
@@ -449,6 +459,9 @@ function setActiveTab(tabName) {
   }
   if (tabName === "campaign-builder") {
     campaignBuilderController.load();
+  }
+  if (tabName === "audience-creator") {
+    audienceCreatorController.load();
   }
 }
 

@@ -10,6 +10,12 @@ their own CSV data in the browser.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
+Version 4.0 adds an **Audience Creator** tab. Users can paste street addresses
+to get latitude and longitude points, paste latitude and longitude points to
+get street addresses, or paste either format to get zip codes. Audience Creator
+uses OpenStreetMap Nominatim lookups in the browser and copies the result table
+as CSV.
+
 Version 3.0 adds a **Campaign Builder** tab. Users can paste ad IDs and select
 a randomized combination of 3–5 unique ads, build a campaign name, generate
 campaign-description ideas from a keyword, and create starter headlines,
