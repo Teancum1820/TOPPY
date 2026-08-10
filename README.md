@@ -10,6 +10,9 @@ their own CSV data in the browser.
 It also builds campaign names using the `CD`, `CSD`, `CO`, `CR`, and `TID`
 naming convention.
 
+Version 4.1 adds Audience Creator export actions. Users can copy location
+results or download the current result table as CSV or TXT.
+
 Version 4.0 adds an **Audience Creator** tab. Users can paste street addresses
 to get latitude and longitude points, paste latitude and longitude points to
 get street addresses, or paste either format to get zip codes. Audience Creator
