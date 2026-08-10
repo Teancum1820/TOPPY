@@ -4,6 +4,7 @@ import {
   lookupZip,
   parseLatLong,
   resultsToCsv,
+  resultsToTxt,
   splitAudienceInput
 } from "./audience-creator.js";
 
@@ -19,6 +20,18 @@ function escapeHtml(value) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function downloadTextFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderResultRow(result) {
@@ -45,7 +58,7 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
 
     root.innerHTML = `
       <section class="audience-hero">
-        <span class="eyebrow">Version 4.0 / Audience workspace</span>
+        <span class="eyebrow">Version 4.1 / Audience workspace</span>
         <h1>Audience <em>Creator.</em></h1>
         <p>Convert pasted audience location lists between street addresses, latitude and longitude points, and zip codes.</p>
       </section>
@@ -75,7 +88,9 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
           <div class="audience-actions">
             <button class="button button-primary" id="audience-run" type="button">Run lookup</button>
             <button class="button button-secondary" id="audience-clear" type="button">Clear</button>
-            <button class="button button-blue" id="audience-copy" type="button" disabled>Copy CSV</button>
+            <button class="button button-blue" id="audience-copy" type="button" disabled>Copy results</button>
+            <button class="button button-secondary" id="audience-export-csv" type="button" disabled>Export CSV</button>
+            <button class="button button-secondary" id="audience-export-txt" type="button" disabled>Export TXT</button>
           </div>
           <p class="form-message" id="audience-message" role="status" aria-live="polite"></p>
         </div>
@@ -87,7 +102,7 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
             <li>Paste one location per line.</li>
             <li>Use normal street addresses, or lat/long points like 40.689247, -74.044502.</li>
             <li>Choose the conversion type.</li>
-            <li>Run the lookup, then copy the CSV results for upload or cleanup.</li>
+            <li>Run the lookup, then copy the results or export them as CSV or TXT.</li>
           </ol>
           <p>Large batches run slowly so the public lookup service is not overloaded. Exact results depend on the address detail you paste.</p>
         </aside>
@@ -131,6 +146,8 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
     const run = root.querySelector("#audience-run");
     const clear = root.querySelector("#audience-clear");
     const copy = root.querySelector("#audience-copy");
+    const exportCsv = root.querySelector("#audience-export-csv");
+    const exportTxt = root.querySelector("#audience-export-txt");
     const message = root.querySelector("#audience-message");
     const tableWrap = root.querySelector("#audience-table-wrap");
     const tableBody = root.querySelector("#audience-table-body");
@@ -141,7 +158,9 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
       tableBody.innerHTML = results.map(renderResultRow).join("");
       tableWrap.hidden = results.length === 0;
       empty.hidden = results.length > 0;
-      copy.disabled = results.length === 0;
+      [copy, exportCsv, exportTxt].forEach((button) => {
+        button.disabled = results.length === 0;
+      });
       count.textContent =
         results.length === 0 ? "No results yet" : `${results.length} results`;
     }
@@ -177,7 +196,9 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
       results = [];
       updateResults();
       run.disabled = true;
-      copy.disabled = true;
+      [copy, exportCsv, exportTxt].forEach((button) => {
+        button.disabled = true;
+      });
 
       for (const [index, line] of lines.entries()) {
         message.textContent = `Looking up ${index + 1} of ${lines.length}...`;
@@ -214,8 +235,26 @@ export function createAudienceCreatorController({ root, copyText, showToast }) {
 
     copy.addEventListener("click", async () => {
       if (await copyText(resultsToCsv(results))) {
-        showToast("Audience CSV copied");
+        showToast("Audience results copied");
       }
+    });
+
+    exportCsv.addEventListener("click", () => {
+      downloadTextFile(
+        "audience-location-results.csv",
+        resultsToCsv(results),
+        "text/csv;charset=utf-8"
+      );
+      showToast("Audience CSV exported");
+    });
+
+    exportTxt.addEventListener("click", () => {
+      downloadTextFile(
+        "audience-location-results.txt",
+        resultsToTxt(results),
+        "text/plain;charset=utf-8"
+      );
+      showToast("Audience TXT exported");
     });
 
     updateResults();
