@@ -538,10 +538,172 @@ a {
 .copy-idea-group ol { margin: 14px 0 0; padding-left: 22px; color: #46514b; line-height: 1.55; }
 .copy-idea-group li + li { margin-top: 8px; }
 
+.audience-creator-page {
+  padding: clamp(44px, 7vw, 92px) 0 80px;
+}
+
+.audience-hero {
+  max-width: 960px;
+  margin-bottom: 38px;
+}
+
+.audience-hero h1 {
+  margin: 14px 0 20px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.2rem, 7vw, 7.2rem);
+  font-weight: 400;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.audience-hero h1 em {
+  color: var(--orange);
+  font-weight: 400;
+}
+
+.audience-hero p,
+.audience-guide p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.audience-tool {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.36fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.audience-tool-main,
+.audience-guide {
+  min-width: 0;
+  padding: clamp(24px, 3vw, 42px);
+  border: 1px solid var(--line);
+  background: rgba(255, 254, 248, 0.94);
+  box-shadow: 0 18px 50px rgba(17, 28, 24, 0.08);
+}
+
+.audience-tool-main {
+  border-top: 5px solid var(--blue);
+}
+
+.audience-guide {
+  border-top: 5px solid var(--orange);
+}
+
+.audience-guide h2 {
+  margin: 8px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+.audience-guide ol {
+  margin: 20px 0;
+  padding-left: 22px;
+  color: #46514b;
+  line-height: 1.6;
+}
+
+.audience-guide li + li {
+  margin-top: 10px;
+}
+
+.audience-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.audience-actions .button {
+  min-width: 150px;
+}
+
+.audience-results {
+  padding: clamp(56px, 7vw, 92px) 0 0;
+}
+
+.audience-empty {
+  display: flex;
+  align-items: center;
+  gap: clamp(24px, 5vw, 76px);
+  min-height: 280px;
+  color: #798079;
+  border-bottom: 1px solid var(--line);
+}
+
+.audience-empty h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.7rem, 3vw, 2.8rem);
+  font-weight: 400;
+}
+
+.audience-empty p {
+  margin: 0;
+}
+
+.audience-table-wrap {
+  margin-top: 24px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  background: #fffef8;
+}
+
+.audience-table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+}
+
+.audience-table th,
+.audience-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: left;
+  vertical-align: top;
+}
+
+.audience-table th:first-child,
+.audience-table td:first-child {
+  border-left: 0;
+}
+
+.audience-table th {
+  color: var(--blue-dark);
+  background: #f1f4fa;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.audience-table td {
+  overflow-wrap: anywhere;
+}
+
+.audience-status {
+  display: inline-flex;
+  padding: 5px 8px;
+  color: #294436;
+  background: var(--sage);
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 900px) {
   .builder-grid { grid-template-columns: 1fr; }
   .builder-name-card { grid-column: auto; }
   .builder-name-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .audience-tool { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -549,6 +711,9 @@ a {
   .builder-action-row, .builder-inline-form { align-items: stretch; flex-direction: column; }
   .compact-field { width: 100%; }
   .builder-output ol { grid-template-columns: 1fr; }
+  .audience-actions { flex-direction: column; }
+  .audience-actions .button { width: 100%; }
+  .audience-empty { align-items: flex-start; flex-direction: column; justify-content: center; }
 }
 
 .generator-panel {
@@ -1718,11 +1883,12 @@ footer {
   }
 
   .app-tabs {
+    flex-wrap: wrap;
     padding-top: 12px;
   }
 
   .app-tab {
-    flex: 1;
+    flex: 1 1 calc(50% - 4px);
     min-width: 0;
     min-height: 44px;
     padding: 0 12px;
